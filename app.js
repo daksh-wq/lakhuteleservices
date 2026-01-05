@@ -118,25 +118,6 @@ const PRELOADED_SCRIPTS = [
         
         TONE: Informative and Final. Speak natural Hinglish.
         `
-    },
-    {
-        id: 'script_offer',
-        name: 'Script 5: Special Offer (Offer)',
-        content: `
-        ROLE: You are Lakhu, DishTV Offer Specialist.
-        SITUATION: Customer has been inactive. You have a special limited-time offer.
-        CORE GOAL: Sell the "6+3 Months Free" or "3+1 Month Free" offer. MINIMUM GOAL: 100 Rupees to keep ID active.
-        
-        OPENING LINE: "Namaskar! Sir, aapka DishTV connection kuch dino se bandh hai. Are you facing any issues with the service? Hum apki help karna chahte hain."
-
-        KEY POINTS TO USE INTELLIGENTLY:
-        1. Empathy First: Listen to their problem (Money, TV broken, Shifted).
-        2. The Solution (The Offer): "Sir, we have a great offer today. Pay for 6 months, get 3 months FREE! Or Pay for 3 months, get 1 month FREE."
-        3. Downsell (Crucial): If they can't afford the big offer, say: "Koi baat nahi Sir. Kam se kam 100 rupees ka recharge karwa lijiye taaki aapka ID active rahe aur future mein offers milte rahein."
-        4. Value Proposition: "Sir, cashback bhi milega single transaction pe."
-        
-        TONE: Helpful, Friendly, and Exciting (about the offer). Speak natural Hinglish.
-        `
     }
 ];
 
@@ -151,9 +132,8 @@ let AppState = {
     activeCall: null,
     listeners: [],
     apiKeys: {
-        // Pre-filled keys as requested
-        gemini: "AIzaSyCkieBuq1FeFRWNhLSS4E9hvyEYd9Us9n0",
-        elevenlabs: "de59670d42323e680f07b3c5169072266539c67bab67d0eca48ed56a7a6d17cf"
+        gemini: localStorage.getItem('np_gemini_key') || "",
+        elevenlabs: localStorage.getItem('np_elevenlabs_key') || ""
     }
 };
 
@@ -280,7 +260,7 @@ function renderDashboard(el) {
                 <div class="text-slate-400 text-xs font-bold uppercase">System Status</div>
                 <div class="text-sm font-bold text-white mt-2">
                     GenArtML Key: <span class="text-success">Active</span><br>
-                    Voice Engine: <span class="text-success">Ready (Standard Female)</span>
+                    Voice Engine: <span class="text-success">Ready (Hindi/Hinglish)</span>
                 </div>
             </div>
             <!-- Main Call Button - Directly opens script selector -->
@@ -501,16 +481,28 @@ function renderConfig(el) {
             <div class="glass-panel p-8 rounded-xl space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-slate-400 mb-2">GenArtML Key (AI Brain)</label>
-                    <input type="password" value="${AppState.apiKeys.gemini}" disabled class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-slate-500 cursor-not-allowed">
+                    <input type="password" id="cfg-gemini" value="${AppState.apiKeys.gemini}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste Gemini Key">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Voice Engine Key</label>
-                    <input type="password" value="${AppState.apiKeys.elevenlabs}" disabled class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-slate-500 cursor-not-allowed">
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Voice Engine Key (ElevenLabs)</label>
+                    <input type="password" id="cfg-eleven" value="${AppState.apiKeys.elevenlabs}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste ElevenLabs Key">
                 </div>
+                <button onclick="saveGlobalKeys()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold">Save Configuration</button>
             </div>
         </div>
     `;
 }
+
+window.saveGlobalKeys = () => {
+    const g = document.getElementById('cfg-gemini').value;
+    const e = document.getElementById('cfg-eleven').value;
+    localStorage.setItem('np_gemini_key', g);
+    localStorage.setItem('np_elevenlabs_key', e);
+    AppState.apiKeys.gemini = g;
+    AppState.apiKeys.elevenlabs = e;
+    alert("Keys Updated! The AI will now use these credentials.");
+    window.router('dashboard');
+};
 
 // --- SPEECH RECOGNITION LOGIC (Google Web Speech API) ---
 let recognition;
@@ -617,7 +609,7 @@ async function processAIResponse(userText) {
         1. ANALYZE the customer's input. Identify their INTENT (e.g., Agreement, Refusal, Money Problem, Out of Station, Exam, etc.).
         2. MATCH that intent to the "SCENARIOS & REBUTTALS" in the Script Context above.
         3. OUTPUT strictly the corresponding response based on the script.
-        4. IF the customer says something that is NOT in the script (e.g., "Hello", "Who is this?"), answer naturally and politely in Hinglish, then pivot back to the OPENING LINE or GOAL immediately.
+        4. IF the customer says something that is NOT in the script (e.g., "Hello", "Who is this?"), answer naturally and politely in Hinglish/Hindi, then pivot back to the OPENING LINE or GOAL immediately.
         5. DO NOT hallucinate new offers. Stick to 200 rupees or the specific script offers.
         6. SPELLING RULE: Always spell "rupees" fully. Never use "rs" or "₹".
         7. LANGUAGE: Speak in Hinglish (Hindi written in English script) exactly as shown in the script.
@@ -626,7 +618,6 @@ async function processAIResponse(userText) {
     `;
 
     try {
-        // Use gemini-1.5-flash which is stable and should resolve 404
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AppState.apiKeys.gemini}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -659,7 +650,7 @@ async function processAIResponse(userText) {
     }
 }
 
-// 3. ElevenLabs Logic (Humanly Hindi Female Voice)
+// 3. ElevenLabs Logic (Humanly Hindi Voice)
 async function aiSpeak(text) {
     if(!AppState.apiKeys.elevenlabs) {
         addTranscriptBubble("System", "Voice Skipped: Key missing.");
@@ -676,11 +667,7 @@ async function aiSpeak(text) {
                          .replace(/₹(\d+)/g, "$1 rupees")
                          .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
 
-    // Replaced problematic voice ID with a standard, high-quality ElevenLabs female voice (Sarah/Rachel)
-    // This solves the 400 Error and Voice Limit Error by using a standard voice available on most tiers.
-    // 'EXAVITQu4vr4xnSDxMaL' is Bella (Standard American, but Multilingual v2 handles Hindi accent well).
-    // '21m00Tcm4TlvDq8ikWAM' is Rachel (Standard American).
-    // Using Bella for clarity.
+    // Standard high-quality ElevenLabs female voice (Sarah/Rachel) with Multilingual v2
     const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; 
 
     try {
@@ -704,7 +691,6 @@ async function aiSpeak(text) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            // Provide clear error to user if API fails
             throw new Error(errorData.detail?.message || `API Error: ${response.status}`);
         }
 
@@ -914,7 +900,6 @@ function updateAIStatus(msg, colorClass) {
     }
 }
 
-let waveInterval;
 function startWaveformAnimation() {
     const bars = document.getElementById('live-waveform').children;
     waveInterval = setInterval(() => {
