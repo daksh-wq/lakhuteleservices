@@ -1,144 +1,205 @@
-// --- FIREBASE IMPORTS ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { 
-    getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
-    doc, updateDoc, setDoc, getDoc, serverTimestamp 
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// --- CONFIG ---
+// --- 1. CONFIG & INIT ---
 const firebaseConfig = {
-  apiKey: "AIzaSyAlXi4CSvr07HTbu_bV4EGO59MXVjmHf54",
-  authDomain: "lakhuteleservices-1f9e0.firebaseapp.com",
-  projectId: "lakhuteleservices-1f9e0",
-  storageBucket: "lakhuteleservices-1f9e0.firebasestorage.app",
-  messagingSenderId: "855678452910",
-  appId: "1:855678452910:web:b0347ec8dfd710104c593f",
-  measurementId: "G-K12ZEMY8KK"
+    apiKey: "AIzaSyAlXi4CSvr07HTbu_bV4EGO59MXVjmHf54",
+    authDomain: "lakhuteleservices-1f9e0.firebaseapp.com",
+    projectId: "lakhuteleservices-1f9e0",
+    storageBucket: "lakhuteleservices-1f9e0.firebasestorage.app",
+    messagingSenderId: "855678452910",
+    appId: "1:855678452910:web:b0347ec8dfd710104c593f"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// --- STATE ---
-let currentUser = null;
-let activeCallData = null; // { leadId, leadName, leadPhone, scriptText }
-let apiKeys = {
-    gemini: localStorage.getItem('np_gemini_key') || '',
-    eleven: localStorage.getItem('np_elevenlabs_key') || ''
+let activeCallData = null;
+let recognition = null;
+let isAiSpeaking = false;
+let currentAudio = null;
+let savedScripts = {
+    1: { title: 'Payment Reminder', content: 'You are an agent. Ask for payment of 450 rupees. Speak in Hindi.' },
+    2: { title: 'Upgrade Offer', content: 'Sell HD Pack upgrade. Speak in Hindi.' }
 };
-let savedScripts = { 1: {}, 2: {}, 3: {}, 4: {} };
 
-// --- INIT ---
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        currentUser = user;
-        document.getElementById('user-display').innerText = "Operator: lakhu20";
-        checkApiStatus();
-        loadScripts();
-        initLeadListener();
+// Defer execution until modules are ready
+window.onload = async () => {
+    // Wait for the firebaseModules to be attached to window by the HTML script block
+    if(window.firebaseModules) {
+        initApp();
     } else {
-        window.location.href = 'index.html'; // Redirect to login if not auth
-    }
-});
-
-function checkApiStatus() {
-    const el = document.getElementById('api-status');
-    const hasKeys = apiKeys.gemini && apiKeys.eleven;
-    el.innerHTML = hasKeys 
-        ? `<span class="w-2 h-2 rounded-full bg-green-500"></span> APIs Ready`
-        : `<span class="w-2 h-2 rounded-full bg-red-500"></span> <a href="index.html" class="underline hover:text-white">Configure Keys</a>`;
-}
-
-// --- SCRIPT MANAGEMENT ---
-async function loadScripts() {
-    // We store the 4 slots in a single document 'config/scripts' for the user
-    // or separate docs. Let's use separate docs for simplicity.
-    // However, user wanted 4 specific slots.
-    
-    // Attempt to fetch from Firestore users/{uid}/config/scripts
-    try {
-        const docRef = doc(db, `users/${currentUser.uid}/config`, 'scripts');
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            savedScripts = data;
-            // Populate UI
-            for(let i=1; i<=4; i++) {
-                if(data[i]) {
-                    document.getElementById(`title-script-${i}`).value = data[i].title || `Slot ${i}`;
-                    document.getElementById(`script-${i}`).value = data[i].content || '';
-                }
-            }
-        }
-    } catch (e) {
-        console.error("Error loading scripts", e);
-    }
-}
-
-window.saveScript = async (slotId) => {
-    const title = document.getElementById(`title-script-${slotId}`).value;
-    const content = document.getElementById(`script-${slotId}`).value;
-    
-    savedScripts[slotId] = { title, content };
-    
-    // Save to Firestore
-    try {
-        await setDoc(doc(db, `users/${currentUser.uid}/config`, 'scripts'), savedScripts);
-        
-        // Visual Feedback
-        const btn = document.querySelector(`button[onclick="saveScript(${slotId})"]`);
-        const originalText = btn.innerText;
-        btn.innerText = "Saved ✓";
-        btn.classList.add('bg-green-600', 'text-white');
-        setTimeout(() => {
-            btn.innerText = originalText;
-            btn.classList.remove('bg-green-600', 'text-white');
-        }, 1500);
-    } catch (e) {
-        alert("Failed to save script: " + e.message);
+        setTimeout(initApp, 500);
     }
 };
 
-// --- LEAD MANAGEMENT ---
-function initLeadListener() {
-    const q = query(collection(db, `users/${currentUser.uid}/leads`), orderBy('createdAt', 'desc'));
-    onSnapshot(q, (snapshot) => {
+async function initApp() {
+    const { initializeApp, getAuth, onAuthStateChanged, signInAnonymously, getFirestore } = window.firebaseModules;
+    
+    const app = initializeApp(firebaseConfig);
+    window.auth = getAuth(app);
+    window.db = getFirestore(app);
+    
+    // Login Anonymously for Demo
+    try {
+        await signInAnonymously(window.auth);
+    } catch(e) {
+        console.error("Auth failed", e);
+    }
+
+    onAuthStateChanged(window.auth, (user) => {
+        if(user) {
+            window.currentUser = user;
+            document.getElementById('user-display').innerText = "Operator: " + user.uid.substring(0,5);
+            initData();
+            checkKeys();
+        }
+    });
+
+    // Populate Keys from LocalStorage
+    document.getElementById('key-gemini').value = localStorage.getItem('np_gemini_key') || '';
+    document.getElementById('key-eleven').value = localStorage.getItem('np_elevenlabs_key') || '';
+}
+
+// --- 2. SPEECH RECOGNITION (HINDI OPTIMIZED) ---
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false; // We want it to stop when user stops speaking to process
+    recognition.interimResults = false;
+    recognition.lang = 'hi-IN'; // CRITICAL: HINDI INDIA
+
+    recognition.onstart = () => {
+        if(isAiSpeaking) { recognition.stop(); return; } // Safety check
+        updateMicUI('listening');
+        updateStatus("LISTENING (Hindi)...", "text-brand-400");
+    };
+
+    recognition.onend = () => {
+        updateMicUI('idle');
+        // RESTART LOOP: Only if AI is NOT speaking and Call IS active
+        if (!isAiSpeaking && activeCallData) {
+            try { recognition.start(); } catch(e) {}
+        }
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if(transcript.trim()) {
+            addBubble("Customer", transcript);
+            processGeminiResponse(transcript);
+        }
+    };
+}
+
+// --- 3. CORE FUNCTIONS ---
+
+window.saveKeys = () => {
+    const k1 = document.getElementById('key-gemini').value;
+    const k2 = document.getElementById('key-eleven').value;
+    localStorage.setItem('np_gemini_key', k1);
+    localStorage.setItem('np_elevenlabs_key', k2);
+    alert("API Keys Saved!");
+    checkKeys();
+};
+
+function checkKeys() {
+    const k1 = localStorage.getItem('np_gemini_key');
+    const k2 = localStorage.getItem('np_elevenlabs_key');
+    const el = document.getElementById('api-status');
+    if(k1 && k2) {
+        el.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> System Ready';
+    } else {
+        el.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> Missing Keys';
+    }
+}
+
+// --- 4. DATA LOADING ---
+function initData() {
+    const { collection, onSnapshot, query, orderBy } = window.firebaseModules;
+    // Load Leads
+    onSnapshot(query(collection(window.db, `users/${window.currentUser.uid}/leads`), orderBy('createdAt', 'desc')), (snap) => {
         const tbody = document.getElementById('leads-table-body');
         tbody.innerHTML = '';
-        
-        if(snapshot.empty) {
+        if(snap.empty) {
             document.getElementById('empty-state').classList.remove('hidden');
         } else {
             document.getElementById('empty-state').classList.add('hidden');
-            snapshot.forEach(doc => {
-                const lead = doc.data();
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-800/50 group transition-colors border-b border-white/5";
-                row.innerHTML = `
-                    <td class="p-4 text-white font-medium">${lead.name}</td>
-                    <td class="p-4 text-slate-400 font-mono">${lead.phone}</td>
-                    <td class="p-4"><span class="text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 border border-dark-border">${lead.status || 'Pending'}</span></td>
-                    <td class="p-4 text-right">
-                        <button onclick="openScriptSelector('${doc.id}', '${lead.name}')" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-brand-500/20 flex items-center gap-2 ml-auto">
-                            <i class="ph-fill ph-phone-call"></i> Call Now
-                        </button>
-                    </td>
+            snap.forEach(doc => {
+                const l = doc.data();
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/5 border-b border-white/5 transition-colors">
+                        <td class="p-4 text-white font-bold">${l.name}</td>
+                        <td class="p-4 text-slate-400 font-mono">${l.phone}</td>
+                        <td class="p-4"><span class="px-2 py-1 rounded bg-slate-800 text-xs">${l.status}</span></td>
+                        <td class="p-4 text-right">
+                            <button onclick="openScriptSelector('${doc.id}', '${l.name}', '${l.phone}')" class="text-brand-400 hover:text-white font-bold text-xs uppercase border border-brand-900/50 hover:bg-brand-600 px-3 py-1.5 rounded transition-all">Call Now</button>
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(row);
             });
         }
     });
 }
 
-window.openAddLeadModal = () => document.getElementById('modal-add-lead').classList.remove('hidden');
+// --- 5. CALLING FLOW ---
+let selectedLead = null;
+
+window.openScriptSelector = (id, name, phone) => {
+    selectedLead = { id, name, phone };
+    document.getElementById('target-lead-name').innerText = name;
+    document.getElementById('modal-select-script').classList.remove('hidden');
+    
+    // Update Script buttons with current text
+    const s1 = document.getElementById('script-1').value;
+    const s2 = document.getElementById('script-2').value;
+    document.getElementById('btn-desc-1').innerText = s1.substring(0,40)+'...';
+    document.getElementById('btn-desc-2').innerText = s2.substring(0,40)+'...';
+};
+
+window.launchCall = (slotId) => {
+    const scriptContent = document.getElementById(`script-${slotId}`).value;
+    const scriptTitle = document.getElementById(`title-script-${slotId}`).value;
+    
+    activeCallData = {
+        ...selectedLead,
+        script: scriptContent,
+        scriptTitle: scriptTitle
+    };
+    
+    document.getElementById('modal-select-script').classList.add('hidden');
+    document.getElementById('modal-active-call').classList.remove('hidden');
+    
+    document.getElementById('live-lead-name').innerText = activeCallData.name;
+    document.getElementById('live-lead-phone').innerText = activeCallData.phone;
+    document.getElementById('live-script-name').innerText = activeCallData.scriptTitle;
+    document.getElementById('transcript').innerHTML = ''; // clear old
+    
+    // Init Visualizer Bars
+    const wf = document.getElementById('waveform');
+    wf.innerHTML = '';
+    for(let i=0; i<20; i++) {
+        const d = document.createElement('div');
+        d.className = "w-1.5 bg-brand-500 rounded-full h-4 transition-all duration-100 wave-bar";
+        wf.appendChild(d);
+    }
+    
+    // START CONVERSATION
+    setTimeout(() => {
+        const opening = `Namaskar ${activeCallData.name} ji. Kya meri awaaz aa rahi hai?`;
+        addBubble("AI Agent", opening);
+        aiSpeak(opening);
+    }, 1000);
+};
+
+window.handleManualSend = (e) => {
+    e.preventDefault();
+    const txt = document.getElementById('user-input').value;
+    if(!txt) return;
+    addBubble("Operator", txt);
+    document.getElementById('user-input').value = '';
+    processGeminiResponse(txt); // Send to AI to reply
+};
 
 window.saveManualLead = async (e) => {
     e.preventDefault();
+    const { addDoc, collection, serverTimestamp } = window.firebaseModules;
     const form = e.target;
-    await addDoc(collection(db, `users/${currentUser.uid}/leads`), {
+    await addDoc(collection(window.db, `users/${window.currentUser.uid}/leads`), {
         name: form.name.value,
         phone: form.phone.value,
         status: 'Pending',
@@ -148,225 +209,152 @@ window.saveManualLead = async (e) => {
     document.getElementById('modal-add-lead').classList.add('hidden');
 };
 
-window.handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        const text = event.target.result;
-        const lines = text.split('\n');
-        const batch = [];
-        lines.forEach(line => {
-            const [name, phone] = line.split(',');
-            if(name && phone) {
-                batch.push(addDoc(collection(db, `users/${currentUser.uid}/leads`), {
-                    name: name.trim(),
-                    phone: phone.trim(),
-                    status: 'Pending',
-                    createdAt: serverTimestamp()
-                }));
-            }
-        });
-        await Promise.all(batch);
-        alert(`Uploaded ${batch.length} leads.`);
-    };
-    reader.readAsText(file);
-};
-
-// --- CALLING LOGIC ---
-
-let selectedLeadId = null;
-
-window.openScriptSelector = (leadId, leadName) => {
-    selectedLeadId = leadId;
-    document.getElementById('target-lead-name').innerText = leadName;
-    
-    // Update buttons with current script titles
-    for(let i=1; i<=4; i++) {
-        document.getElementById(`btn-title-${i}`).innerText = savedScripts[i]?.title || `Slot ${i} (Empty)`;
-        document.getElementById(`btn-desc-${i}`).innerText = savedScripts[i]?.content?.substring(0, 40) + '...' || 'No script configured';
-    }
-    
-    document.getElementById('modal-select-script').classList.remove('hidden');
-};
-
-window.launchCall = async (slotId) => {
-    const script = savedScripts[slotId];
-    if(!script || !script.content) {
-        alert("This slot is empty. Please configure it on the left.");
-        return;
-    }
-    
-    document.getElementById('modal-select-script').classList.add('hidden');
-    
-    // Fetch full lead details
-    const leadRef = doc(db, `users/${currentUser.uid}/leads`, selectedLeadId);
-    const leadSnap = await getDoc(leadRef);
-    const lead = leadSnap.data();
-    
-    activeCallData = {
-        leadId: selectedLeadId,
-        leadName: lead.name,
-        leadPhone: lead.phone,
-        scriptText: script.content,
-        scriptName: script.title
-    };
-    
-    // Setup UI
-    document.getElementById('live-lead-name').innerText = lead.name;
-    document.getElementById('live-lead-phone').innerText = lead.phone;
-    document.getElementById('live-script-name').innerText = script.title;
-    document.getElementById('transcript').innerHTML = '';
-    document.getElementById('modal-active-call').classList.remove('hidden');
-    
-    // Init Visualizer
-    const wf = document.getElementById('waveform');
-    wf.innerHTML = '';
-    for(let i=0; i<30; i++) {
-        const bar = document.createElement('div');
-        bar.className = 'w-1.5 bg-slate-700 rounded-full h-4 transition-all duration-75';
-        wf.appendChild(bar);
-    }
-    
-    // Start AI Hello
-    updateStatus("CONNECTING...", "text-yellow-500");
-    setTimeout(() => {
-        aiSpeak(`Hello, am I speaking with ${lead.name}?`);
-    }, 1500);
-};
-
-window.handleUserSpeak = async (e) => {
-    e.preventDefault();
-    const input = document.getElementById('user-input');
-    const text = input.value;
-    if(!text) return;
-    
-    addBubble("Customer", text);
-    input.value = '';
-    
-    // Gemini Call
-    await processGeminiResponse(text);
-};
+// --- 6. AI LOGIC (UPDATED FOR HINDI) ---
 
 async function processGeminiResponse(userText) {
-    if(!apiKeys.gemini) {
-        addBubble("System", "Error: No Gemini Key");
-        return;
-    }
+    const key = localStorage.getItem('np_gemini_key');
+    if(!key) { addBubble("System", "Error: No Gemini Key"); return; }
     
     updateStatus("THINKING...", "text-purple-400");
     
+    // STRICT HINDI PROMPT
     const prompt = `
-        You are an AI calling agent.
-        Script Context: "${activeCallData.scriptText}"
-        Customer Name: ${activeCallData.leadName}
+        You are an Indian Call Center Agent named 'Lakhu'.
+        Context: ${activeCallData.script}
+        Customer Name: ${activeCallData.name}
+        User said: "${userText}"
         
-        Customer said: "${userText}"
+        INSTRUCTIONS:
+        1. Reply in HINDI (or Hinglish) ONLY.
+        2. Keep it short (1-2 sentences).
+        3. Be polite but persuasive.
+        4. If the user agrees to pay/recharge, say "Thank you" and end the conversation.
         
-        Respond naturally as the agent based on the script. Keep it concise.
+        Reply Text:
     `;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKeys.gemini}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
-        const data = await response.json();
+        const data = await res.json();
         const aiText = data.candidates[0].content.parts[0].text;
         
         addBubble("AI Agent", aiText);
-        await aiSpeak(aiText);
-    } catch (e) {
+        aiSpeak(aiText);
+        
+    } catch(e) {
         console.error(e);
-        addBubble("System", "Gemini Error");
+        addBubble("System", "AI Error");
+        updateStatus("ERROR", "text-red-500");
     }
 }
 
 async function aiSpeak(text) {
-    if(!apiKeys.eleven) {
-        addBubble("System", "TTS Skipped (No Key)");
-        return;
-    }
+    const key = localStorage.getItem('np_elevenlabs_key');
+    if(!key) { addBubble("System", "TTS Skipped (No Key)"); return; }
+    
+    isAiSpeaking = true;
+    if(recognition) recognition.stop(); // Stop listening while speaking
     
     updateStatus("SPEAKING...", "text-green-400");
     startWave();
     
     try {
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM`, {
+        // USE MULTILINGUAL V2 FOR HINDI
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL`, {
             method: 'POST',
             headers: {
-                'xi-api-key': apiKeys.eleven,
+                'xi-api-key': key,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 text: text,
-                model_id: "eleven_monolingual_v1",
-                voice_settings: { stability: 0.5, similarity_boost: 0.5 }
+                model_id: "eleven_multilingual_v2", // FIX: HINDI SUPPORT
+                voice_settings: { stability: 0.5, similarity_boost: 0.8 }
             })
         });
         
-        const blob = await response.blob();
-        const audio = new Audio(URL.createObjectURL(blob));
-        await audio.play();
-        audio.onended = () => {
+        const blob = await res.blob();
+        currentAudio = new Audio(URL.createObjectURL(blob));
+        await currentAudio.play();
+        
+        currentAudio.onended = () => {
+            isAiSpeaking = false;
             stopWave();
             updateStatus("LISTENING...", "text-brand-400");
+            
+            // AUTO RESTART MIC
+            if(recognition && activeCallData) {
+                try { recognition.start(); } catch(e){}
+            }
         };
-    } catch (e) {
+        
+    } catch(e) {
         console.error(e);
+        isAiSpeaking = false;
         stopWave();
     }
 }
 
-window.terminateCall = async () => {
-    // Save log
-    if(activeCallData) {
-        await addDoc(collection(db, `users/${currentUser.uid}/logs`), {
-            number: activeCallData.leadPhone,
-            disposition: 'Completed',
-            displayTime: new Date().toLocaleTimeString(),
-            createdAt: serverTimestamp()
-        });
-        
-        await updateDoc(doc(db, `users/${currentUser.uid}/leads`, activeCallData.leadId), { status: 'Called' });
-    }
-    
+// --- 7. UTILS ---
+
+window.terminateCall = () => {
+    if(currentAudio) currentAudio.pause();
+    activeCallData = null;
+    isAiSpeaking = false;
+    if(recognition) recognition.stop();
     document.getElementById('modal-active-call').classList.add('hidden');
     stopWave();
 };
 
-// Utils
 function addBubble(role, text) {
-    const div = document.createElement('div');
-    const isAI = role === 'AI Agent';
-    div.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'}`;
-    div.innerHTML = `
-        <span class="text-xs text-slate-500 mb-1">${role}</span>
-        <div class="px-3 py-2 rounded-lg max-w-[85%] text-sm ${isAI ? 'bg-brand-900/40 text-brand-100' : 'bg-slate-700 text-white'}">
-            ${text}
+    const box = document.getElementById('transcript');
+    const isMe = role === 'Operator' || role === 'Customer';
+    box.innerHTML += `
+        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-4">
+            <span class="text-[10px] uppercase font-bold text-slate-500 mb-1">${role}</span>
+            <div class="${isMe ? 'bg-slate-700' : 'bg-brand-900/50 border border-brand-500/20'} px-4 py-2 rounded-lg max-w-[85%] text-sm">
+                ${text}
+            </div>
         </div>
     `;
-    document.getElementById('transcript').appendChild(div);
+    box.scrollTop = box.scrollHeight;
 }
 
-function updateStatus(text, color) {
+function updateStatus(msg, color) {
     const el = document.getElementById('ai-status');
-    el.innerText = text;
-    el.className = `text-2xl font-mono mb-8 font-bold ${color}`;
+    el.innerText = msg;
+    el.className = `text-2xl font-mono font-bold mb-8 ${color}`;
 }
 
-let waveInt;
+function updateMicUI(state) {
+    const el = document.getElementById('mic-indicator');
+    const txt = document.getElementById('mic-text');
+    if(state === 'listening') {
+        el.className = "w-3 h-3 rounded-full bg-red-500 animate-pulse";
+        txt.innerText = "Listening...";
+        txt.className = "text-xs text-red-400 font-bold";
+    } else {
+        el.className = "w-3 h-3 rounded-full bg-slate-600";
+        txt.innerText = "Mic Idle";
+        txt.className = "text-xs text-slate-400";
+    }
+}
+
+let waveInterval;
 function startWave() {
-    const bars = document.getElementById('waveform').children;
-    waveInt = setInterval(() => {
-        Array.from(bars).forEach(b => {
-            b.style.height = (Math.random() * 4 + 1) + 'rem';
+    const bars = document.querySelectorAll('.wave-bar');
+    waveInterval = setInterval(() => {
+        bars.forEach(b => {
+            b.style.height = (Math.random() * 4 + 0.5) + 'rem';
         });
     }, 100);
 }
+
 function stopWave() {
-    clearInterval(waveInt);
-    const bars = document.getElementById('waveform').children;
-    Array.from(bars).forEach(b => b.style.height = '1rem');
+    clearInterval(waveInterval);
+    document.querySelectorAll('.wave-bar').forEach(b => b.style.height = '0.5rem');
 }
