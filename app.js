@@ -44,7 +44,7 @@ const PRELOADED_SCRIPTS = [
         id: 'script_1',
         name: 'Script 1: Important Info (Mahatvapurn Jankari)',
         content: `
-        ROLE: You are Lakhu, a smart and persuasive retention agent for DishTV.
+        CONTEXT: You are Lakhu, a smart and persuasive retention agent for DishTV.
         SITUATION: The customer's connection is about to be PERMANENTLY DISCONNECTED today because they haven't recharged.
         CORE GOAL: Convince the customer to recharge for 200 Rupees TODAY. Not tomorrow, TODAY.
         
@@ -626,7 +626,7 @@ async function processAIResponse(userText) {
     `;
 
     try {
-        // Use gemini-1.5-flash which is stable
+        // Use gemini-1.5-flash which is stable and should resolve 404
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AppState.apiKeys.gemini}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
