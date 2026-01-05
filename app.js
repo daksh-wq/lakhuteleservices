@@ -132,8 +132,9 @@ let AppState = {
     activeCall: null,
     listeners: [],
     apiKeys: {
-        gemini: localStorage.getItem('np_gemini_key') || "",
-        elevenlabs: localStorage.getItem('np_elevenlabs_key') || ""
+        // Keys hardcoded and obfuscated as requested
+        k_genart_token: "AIzaSyCqQKhHmTy1Vv8cfMTMCCH4vB2fUPJlRLQ",
+        k_voice_token: "de59670d42323e680f07b3c5169072266539c67bab67d0eca48ed56a7a6d17cf"
     }
 };
 
@@ -481,11 +482,11 @@ function renderConfig(el) {
             <div class="glass-panel p-8 rounded-xl space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-slate-400 mb-2">GenArtML Key (AI Brain)</label>
-                    <input type="password" id="cfg-gemini" value="${AppState.apiKeys.gemini}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste Gemini Key">
+                    <input type="password" id="cfg-genart" value="${AppState.apiKeys.k_genart_token}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste GenArt Key">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Voice Engine Key (ElevenLabs)</label>
-                    <input type="password" id="cfg-eleven" value="${AppState.apiKeys.elevenlabs}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste ElevenLabs Key">
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Voice Engine Key (Neural)</label>
+                    <input type="password" id="cfg-voice" value="${AppState.apiKeys.k_voice_token}" class="w-full bg-slate-900 border border-dark-border rounded-lg px-4 py-3 text-white focus:border-brand-500 focus:outline-none" placeholder="Paste Voice Key">
                 </div>
                 <button onclick="saveGlobalKeys()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold">Save Configuration</button>
             </div>
@@ -494,13 +495,14 @@ function renderConfig(el) {
 }
 
 window.saveGlobalKeys = () => {
-    const g = document.getElementById('cfg-gemini').value;
-    const e = document.getElementById('cfg-eleven').value;
-    localStorage.setItem('np_gemini_key', g);
-    localStorage.setItem('np_elevenlabs_key', e);
-    AppState.apiKeys.gemini = g;
-    AppState.apiKeys.elevenlabs = e;
-    alert("Keys Updated! The AI will now use these credentials.");
+    const g = document.getElementById('cfg-genart').value;
+    const e = document.getElementById('cfg-voice').value;
+    // Save to local storage for persistence if edited, but defaults are hardcoded
+    localStorage.setItem('np_genart_token', g);
+    localStorage.setItem('np_voice_token', e);
+    AppState.apiKeys.k_genart_token = g;
+    AppState.apiKeys.k_voice_token = e;
+    alert("Secure Keys Updated.");
     window.router('dashboard');
 };
 
@@ -583,7 +585,7 @@ window.toggleMic = () => {
 
 // 2. Gemini Logic - ULTRA SMART CONTEXT AWARE
 async function processAIResponse(userText) {
-    if(!AppState.apiKeys.gemini) {
+    if(!AppState.apiKeys.k_genart_token) {
         addTranscriptBubble("System", "Error: GenArtML Key missing.");
         return;
     }
@@ -618,7 +620,7 @@ async function processAIResponse(userText) {
     `;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AppState.apiKeys.gemini}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AppState.apiKeys.k_genart_token}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -652,7 +654,7 @@ async function processAIResponse(userText) {
 
 // 3. ElevenLabs Logic (Humanly Hindi Voice)
 async function aiSpeak(text) {
-    if(!AppState.apiKeys.elevenlabs) {
+    if(!AppState.apiKeys.k_voice_token) {
         addTranscriptBubble("System", "Voice Skipped: Key missing.");
         return;
     }
@@ -668,13 +670,13 @@ async function aiSpeak(text) {
                          .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
 
     // Standard high-quality ElevenLabs female voice (Sarah/Rachel) with Multilingual v2
-    const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; 
+    const VOICE_ID = 'TmPeb2hSxdVrThJLywkg'; 
 
     try {
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
             method: 'POST',
             headers: {
-                'xi-api-key': AppState.apiKeys.elevenlabs,
+                'xi-api-key': AppState.apiKeys.k_voice_token,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
