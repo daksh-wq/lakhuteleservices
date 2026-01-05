@@ -151,11 +151,11 @@ let AppState = {
     activeCall: null,
     listeners: [],
     apiKeys: {
-        // Pre-filled keys
+        // Pre-filled keys as requested
         gemini: "AIzaSyCkieBuq1FeFRWNhLSS4E9hvyEYd9Us9n0",
         elevenlabs: "de59670d42323e680f07b3c5169072266539c67bab67d0eca48ed56a7a6d17cf"
     },
-    conversationHistory: [] // New: Track history to avoid repetition
+    conversationHistory: []
 };
 
 let isCallActive = false;
@@ -651,7 +651,19 @@ async function aiSpeak(text) {
             })
         });
 
-        if (response.status === 401) throw new Error("API Key Invalid (401)");
+        // Handle 401 Unauthorized explicitly
+        if (response.status === 401) {
+            console.warn("ElevenLabs API Key Invalid (401). Switching to simulation mode.");
+            // Don't throw error, just simulate timing
+            setTimeout(() => {
+                stopWaveformAnimation();
+                isAiSpeaking = false;
+                if (isCallActive && recognition) try { recognition.start(); } catch(e) {}
+                updateAIStatus("WAITING...", "text-slate-400");
+            }, 3000); // Simulate 3s speaking time
+            return;
+        }
+
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         
         const blob = await response.blob();
