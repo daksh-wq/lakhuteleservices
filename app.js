@@ -59,7 +59,7 @@ const PRELOADED_SCRIPTS = [
            - "Money Problem": "Sir, it's just 200 rupees to save your connection from permanent deletion. Please adjust from somewhere."
            - "Other Company": "Keep this as a backup, Sir. Just 200 rupees keeps it active."
         
-        TONE: Helpful but Firm about the deadline. Speak Pure Hindi.
+        TONE: Helpful but Firm about the deadline. Speak natural Hinglish.
         `
     },
     {
@@ -78,7 +78,7 @@ const PRELOADED_SCRIPTS = [
         3. Refusals: If they refuse, remind them they are losing the connection forever. "Sir, future mein kabhi bhi TV dekhna ho to aaj 200 ka recharge jaruri hai."
         4. Exams/Kids: If they say kids are studying, say "Exams will end, but this connection won't restart if closed today. Recharge 200 rupees to keep it ready for after exams."
         
-        TONE: Urgent. You are giving them a last warning to save their connection. Speak Pure Hindi.
+        TONE: Urgent. You are giving them a last warning to save their connection. Speak natural Hinglish.
         `
     },
     {
@@ -97,7 +97,7 @@ const PRELOADED_SCRIPTS = [
         3. If "Bandh": "Okay, so you want to close it forever? You will never watch TV on this box again? If there is even 1% chance, recharge 200 rupees to keep it safe."
         4. Passive Customers: If they are silent or vague, assume they want to save it. "Sir, risk mat lijiye, 200 ka recharge karke chalu rakhiye."
         
-        TONE: Direct and Professional. Speak Pure Hindi.
+        TONE: Direct and Professional. Speak natural Hinglish.
         `
     },
     {
@@ -116,7 +116,7 @@ const PRELOADED_SCRIPTS = [
         3. "Later": "Sir, aaj final chance hai system mein. Aaj nahi kiya to permanent delete ho jayega."
         4. "Not Interested": "Sure Sir, but just remember, buying a new box costs 2000 rupees. Reviving this costs only 200 rupees."
         
-        TONE: Informative and Final. Speak Pure Hindi.
+        TONE: Informative and Final. Speak natural Hinglish.
         `
     },
     {
@@ -135,7 +135,7 @@ const PRELOADED_SCRIPTS = [
         3. Downsell (Crucial): If they can't afford the big offer, say: "Koi baat nahi Sir. Kam se kam 100 rupees ka recharge karwa lijiye taaki aapka ID active rahe aur future mein offers milte rahein."
         4. Value Proposition: "Sir, cashback bhi milega single transaction pe."
         
-        TONE: Helpful, Friendly, and Exciting (about the offer). Speak Pure Hindi.
+        TONE: Helpful, Friendly, and Exciting (about the offer). Speak natural Hinglish.
         `
     }
 ];
@@ -215,6 +215,7 @@ function initializeDataListeners(userId) {
     // Scripts
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/scripts`), orderBy('createdAt', 'desc')), (snapshot) => {
         const dbScripts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Fallback to preloaded scripts if database is empty to ensure UI always works
         AppState.scripts = dbScripts.length > 0 ? dbScripts : PRELOADED_SCRIPTS;
         if(AppState.view === 'campaigns') refreshCurrentView();
     }));
@@ -279,10 +280,10 @@ function renderDashboard(el) {
                 <div class="text-slate-400 text-xs font-bold uppercase">System Status</div>
                 <div class="text-sm font-bold text-white mt-2">
                     GenArtML Key: <span class="text-success">Active</span><br>
-                    Voice Engine: <span class="text-success">Ready (Hindi/Female)</span>
+                    Voice Engine: <span class="text-success">Ready (Standard Female)</span>
                 </div>
             </div>
-            <!-- Main Call Button -->
+            <!-- Main Call Button - Directly opens script selector -->
             <div class="glass-panel p-5 rounded-xl flex items-center justify-center bg-brand-900/20 border border-brand-500/30">
                 <button onclick="startGeneralSession()" class="w-full h-full flex flex-col items-center justify-center text-brand-400 hover:text-white transition-colors group">
                     <i class="ph-fill ph-phone-call text-3xl mb-2 group-hover:scale-110 transition-transform"></i>
@@ -326,6 +327,7 @@ function renderDashboard(el) {
                                 <div class="text-white text-sm font-medium">${l.name}</div>
                                 <div class="text-xs text-slate-500 font-mono">${l.phone}</div>
                             </div>
+                            <!-- CALL NOW BUTTON -->
                             <button onclick="openScriptSelector('${l.id}')" class="bg-brand-600 hover:bg-brand-500 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-brand-500/20 flex items-center gap-1 text-xs font-bold transition-transform active:scale-95">
                                 <i class="ph-fill ph-phone-call"></i> Call Now
                             </button>
@@ -410,7 +412,7 @@ function renderLeads(el) {
 }
 
 function renderActiveCallPage(el) {
-    if(!AppState.activeCall) { window.router('dashboard'); return; }
+    if(!AppState.activeCall) { window.router('dashboard'); return; } // Fallback to dashboard if no active call
     const { lead, script } = AppState.activeCall;
 
     el.innerHTML = `
@@ -455,6 +457,7 @@ function renderActiveCallPage(el) {
                         
                         <!-- Hidden form for speech input logic -->
                         <div class="p-4 bg-slate-900 border-t border-dark-border hidden">
+                            <!-- Hidden form as we focus on voice -->
                             <form onsubmit="handleUserResponse(event)" class="flex gap-2">
                                 <input type="text" id="user-input" class="hidden"> 
                             </form>
@@ -509,15 +512,16 @@ function renderConfig(el) {
     `;
 }
 
-// --- SPEECH RECOGNITION LOGIC ---
+// --- SPEECH RECOGNITION LOGIC (Google Web Speech API) ---
 let recognition;
 
+// Check browser support
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
-    recognition.continuous = false; 
+    recognition.continuous = false; // Stop after one sentence to process
     recognition.interimResults = false;
-    recognition.lang = 'hi-IN'; // Optimized for Hindi
+    recognition.lang = 'hi-IN'; // Use Hindi/Indian English for better recognition
 
     recognition.onstart = function() {
         const btn = document.getElementById('mic-toggle-btn');
@@ -539,13 +543,19 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             txt.innerText = "Mic Ready";
         }
         
+        // Auto-restart logic if call is active and AI is NOT speaking
         if (isCallActive && !isAiSpeaking) {
-            setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
+            // Small delay to prevent tight loops
+            setTimeout(() => {
+                try { recognition.start(); } catch(e) { /* ignore already started */ }
+            }, 500);
         }
     };
 
     recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
+        
+        // Auto-send after recognizing
         if(transcript.trim().length > 0) {
             addTranscriptBubble("Customer", transcript);
             processAIResponse(transcript);
@@ -568,7 +578,13 @@ window.toggleMic = () => {
         alert("Speech Recognition is not supported in this browser. Please use Chrome.");
         return;
     }
-    try { recognition.start(); } catch (e) { recognition.stop(); }
+
+    try {
+        recognition.start();
+    } catch (e) {
+        // If already started, stop it
+        recognition.stop();
+    }
 };
 
 // --- LOGIC: ACTIVE CALL (INTELLIGENT AI) ---
@@ -586,25 +602,27 @@ async function processAIResponse(userText) {
     
     // SMART PROMPT: Focuses on Context, Goal, and Natural Conversation
     const prompt = `
-        You are Lakhu, an intelligent and empathetic retention agent for DishTV.
+        You are an expert sales agent named Lakhu for DishTV.
+        Your task is to classify the Customer's input and select the EXACT corresponding response from the provided script.
         
-        YOUR GOAL: ${script.name.includes('Offer') ? 'Sell the Special Offer or get minimum 100 rupees.' : 'Get a 200 Rupees recharge commitment TODAY to save the connection.'}
-        
-        CONTEXT & GUIDELINES (Use this to understand the situation):
+        CONTEXT:
+        - Customer Name: ${lead.name}
+        - Goal: ${script.name}
+        - Current Script Context: 
         ${script.content}
 
         CUSTOMER SAID: "${userText}"
 
         INSTRUCTIONS:
-        1. UNDERSTAND the customer's intent (Agreement, Refusal, Excuse, Question).
-        2. FORMULATE a natural, human-like response in PURE HINDI (Devanagari script style or clear transliteration, avoiding English words unless technical like 'Recharge', 'Connection').
-        3. DO NOT repeat the same lines robotically. Adapt your phrasing.
-        4. IF they agree, close the deal: "Boht badhiya Sir, 200 rupees ka recharge abhi kar lijiye."
-        5. IF they refuse/make excuses, use the "KEY POINTS" from the context to persuade them naturally.
-        6. ALWAYS spell currency as "rupees". Never use symbols.
-        7. Keep response short (1-2 sentences).
+        1. ANALYZE the customer's input. Identify their INTENT (e.g., Agreement, Refusal, Money Problem, Out of Station, Exam, etc.).
+        2. MATCH that intent to the "SCENARIOS & REBUTTALS" in the Script Context above.
+        3. OUTPUT strictly the corresponding response based on the script.
+        4. IF the customer says something that is NOT in the script (e.g., "Hello", "Who is this?"), answer naturally and politely in Hinglish, then pivot back to the OPENING LINE or GOAL immediately.
+        5. DO NOT hallucinate new offers. Stick to 200 rupees or the specific script offers.
+        6. SPELLING RULE: Always spell "rupees" fully. Never use "rs" or "₹".
+        7. LANGUAGE: Speak in Hinglish (Hindi written in English script) exactly as shown in the script.
 
-        YOUR NATURAL RESPONSE (in Pure Hindi):
+        YOUR RESPONSE (Text only, in Hinglish):
     `;
 
     try {
@@ -619,17 +637,17 @@ async function processAIResponse(userText) {
         if (data.candidates && data.candidates.length > 0) {
             let aiText = data.candidates[0].content.parts[0].text;
             
-            // Safety formatting
+            // STRICT FORMATTING: Force "rupees" spelling (Redundant safety net)
             aiText = aiText.replace(/(\d+)\s*rs/gi, "$1 rupees")
                            .replace(/₹(\d+)/g, "$1 rupees")
                            .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees")
-                           .replace(/\*/g, ""); 
+                           .replace(/\*/g, ""); // Remove asterisks if AI adds bolding
             
             addTranscriptBubble("Lakhu (AI)", aiText);
             await aiSpeak(aiText);
         } else {
-            console.error("Gemini Error", data);
-            addTranscriptBubble("System", "AI brain failed to respond.");
+            console.error("Gemini Error: No candidates found", data);
+            addTranscriptBubble("System", "AI failed to generate a response.");
             updateAIStatus("ERROR", "text-red-500");
         }
         
@@ -648,7 +666,7 @@ async function aiSpeak(text) {
     }
 
     isAiSpeaking = true;
-    if(recognition) try { recognition.stop(); } catch(e){} 
+    if(recognition) try { recognition.stop(); } catch(e){} // Pause listening while speaking
 
     updateAIStatus("SPEAKING...", "text-green-400");
     startWaveformAnimation();
@@ -657,10 +675,15 @@ async function aiSpeak(text) {
                          .replace(/₹(\d+)/g, "$1 rupees")
                          .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
 
+    // Replaced problematic voice ID with a standard, high-quality ElevenLabs female voice (Sarah/Rachel)
+    // This solves the 400 Error and Voice Limit Error by using a standard voice available on most tiers.
+    // 'EXAVITQu4vr4xnSDxMaL' is Bella (Standard American, but Multilingual v2 handles Hindi accent well).
+    // '21m00Tcm4TlvDq8ikWAM' is Rachel (Standard American).
+    // Using Bella for clarity.
+    const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; 
+
     try {
-        // Voice ID: 'Rk0hF1X0z2RQCmWH9SCb' (Indian Female - Requested)
-        // Using "eleven_multilingual_v2" for best Hindi support
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/Rk0hF1X0z2RQCmWH9SCb`, {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
             method: 'POST',
             headers: {
                 'xi-api-key': AppState.apiKeys.elevenlabs,
@@ -668,11 +691,11 @@ async function aiSpeak(text) {
             },
             body: JSON.stringify({
                 text: safeText,
-                model_id: "eleven_multilingual_v2",
+                model_id: "eleven_multilingual_v2", // Critical for Hindi support
                 voice_settings: { 
-                    stability: 0.4,       // Lower = more expressive
-                    similarity_boost: 0.8, 
-                    style: 0.5,           
+                    stability: 0.5,
+                    similarity_boost: 0.75, 
+                    style: 0.0,           
                     use_speaker_boost: true 
                 }
             })
@@ -680,7 +703,7 @@ async function aiSpeak(text) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            // If 400 or 401, likely issue with voice ID or plan limits -> trigger fallback
+            // Provide clear error to user if API fails
             throw new Error(errorData.detail?.message || `API Error: ${response.status}`);
         }
 
@@ -695,9 +718,15 @@ async function aiSpeak(text) {
         currentAudio.onended = () => {
             stopWaveformAnimation();
             isAiSpeaking = false;
+            
+            // AUTOMATICALLY RESTART LISTENING (Turn-taking)
             if (isCallActive && recognition) {
                  updateAIStatus("LISTENING...", "text-brand-400");
-                 try { recognition.start(); } catch(e) {}
+                 try {
+                    recognition.start();
+                 } catch(e) {
+                    // Ignore if already started
+                 }
             } else {
                 updateAIStatus("WAITING...", "text-slate-400");
             }
@@ -713,20 +742,24 @@ async function aiSpeak(text) {
 
 // --- SCRIPT & CALL SETUP ---
 
+// NEW: Start a General Session WITHOUT needing pending leads
 window.startGeneralSession = () => {
+    // Open selector with 'guest' as the lead ID ID to indicate no specific record
     openScriptSelector('guest');
 };
 
 window.openScriptSelector = (leadId) => {
+    // Check if scripts exist
     if(AppState.scripts.length === 0) {
         alert("System Error: Scripts not loaded.");
         return;
     }
 
+    // Create Modal HTML Dynamically - Updated with Radio Buttons and Continue
     const modalHtml = `
         <div id="modal-script-select" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center fade-in">
             <div class="glass-panel w-full max-w-md rounded-xl p-6">
-                <h3 class="text-lg font-bold text-white mb-4">Select Call Strategy</h3>
+                <h3 class="text-lg font-bold text-white mb-4">Select Script for Call</h3>
                 <div class="space-y-3 max-h-80 overflow-y-auto mb-6 pr-1">
                     ${AppState.scripts.map((s, index) => `
                         <label class="flex items-start gap-3 p-3 rounded-lg bg-slate-900 border border-dark-border hover:border-brand-500 cursor-pointer transition-all group">
@@ -740,7 +773,7 @@ window.openScriptSelector = (leadId) => {
                 </div>
                 <div class="flex gap-3">
                     <button onclick="document.getElementById('modal-script-select').remove()" class="flex-1 py-2.5 rounded-lg border border-dark-border text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">Cancel</button>
-                    <button onclick="confirmScriptSelection('${leadId}')" class="flex-1 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/20 transition-all transform active:scale-95">Start Call</button>
+                    <button onclick="confirmScriptSelection('${leadId}')" class="flex-1 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold shadow-lg shadow-brand-500/20 transition-all transform active:scale-95">Continue</button>
                 </div>
             </div>
         </div>
@@ -748,24 +781,35 @@ window.openScriptSelector = (leadId) => {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 };
 
+// NEW: Confirm Selection Helper
 window.confirmScriptSelection = (leadId) => {
     const selected = document.querySelector('input[name="script_choice"]:checked');
     if (selected) {
         startCallWithScript(leadId, selected.value);
     } else {
-        alert("Please select a strategy to continue.");
+        alert("Please select a script to continue.");
     }
 };
 
 window.startCallWithScript = (leadId, scriptId) => {
     let lead;
+    
+    // Check if it's a guest session or a real lead
     if (leadId === 'guest') {
-        lead = { id: 'guest', name: 'Guest User', phone: 'Unknown', status: 'Guest' };
+        lead = {
+            id: 'guest',
+            name: 'Guest User',
+            phone: 'Unknown Number',
+            status: 'Guest'
+        };
     } else {
         lead = AppState.leads.find(l => l.id === leadId);
     }
+
     const script = AppState.scripts.find(s => s.id === scriptId);
+    
     document.getElementById('modal-script-select').remove();
+    
     AppState.activeCall = { lead, script };
     window.router('active-call');
 };
@@ -785,6 +829,7 @@ window.endActiveCall = async () => {
     
     const { lead } = AppState.activeCall;
     
+    // Log call if user is authenticated and it's a real lead (or we want to log guests too)
     if(AppState.user) {
         await addDoc(collection(db, `artifacts/${appId}/users/${AppState.user.uid}/logs`), {
             number: lead.phone,
@@ -792,16 +837,18 @@ window.endActiveCall = async () => {
             displayTime: new Date().toLocaleTimeString(),
             createdAt: serverTimestamp()
         });
+        
+        // Update lead status only if it's a real database lead
         if (lead.id !== 'guest') {
             await updateDoc(doc(db, `artifacts/${appId}/users/${AppState.user.uid}/leads`, lead.id), { status: 'Called' });
         }
     }
+    
     AppState.activeCall = null;
     window.router('dashboard');
 };
 
 window.handleLeadUpload = (e) => {
-    // ... (Existing lead upload logic) ...
     const file = e.target.files[0];
     if(!file || !AppState.user) return;
     
@@ -841,15 +888,17 @@ window.handleLeadUpload = (e) => {
 };
 
 // --- UI HELPERS ---
+
 function addTranscriptBubble(role, text) {
     const container = document.getElementById('live-transcript');
     const isAI = role.includes('AI');
+    const isSys = role === 'System';
     
     const div = document.createElement('div');
-    div.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'}`;
+    div.className = `flex flex-col ${isAI ? 'items-start' : (isSys ? 'items-center' : 'items-end')}`;
     div.innerHTML = `
-        <span class="text-xs text-slate-400 mb-1">${role}</span>
-        <div class="px-4 py-2 rounded-2xl max-w-[80%] ${isAI ? 'bg-brand-900/50 text-brand-100 rounded-tl-none' : 'bg-slate-700 text-white rounded-tr-none'}">
+        <span class="text-xs ${isSys ? 'text-slate-600' : 'text-slate-400'} mb-1">${role}</span>
+        <div class="px-4 py-2 rounded-2xl max-w-[80%] ${isAI ? 'bg-brand-900/50 text-brand-100 rounded-tl-none' : (isSys ? 'text-slate-500 italic' : 'bg-slate-700 text-white rounded-tr-none')}">
             ${text}
         </div>
     `;
@@ -865,7 +914,6 @@ function updateAIStatus(msg, colorClass) {
     }
 }
 
-// ... (Animation Helpers) ...
 let waveInterval;
 function startWaveformAnimation() {
     const bars = document.getElementById('live-waveform').children;
@@ -890,15 +938,31 @@ function stopWaveformAnimation() {
 window.closeModal = (id) => { document.getElementById(id).classList.add('hidden'); };
 window.openModal = (id) => { document.getElementById(id).classList.remove('hidden'); };
 window.handleSaveLead = async (e) => {
-    // ... (Existing save lead logic) ...
     e.preventDefault();
     if (!AppState.user) return;
     const form = e.target;
-    await addDoc(collection(db, `artifacts/${appId}/users/${AppState.user.uid}/leads`), {
-        name: form.name.value,
-        phone: form.phone.value,
-        status: 'Pending',
-        createdAt: serverTimestamp()
-    });
-    window.closeModal('modal-add-lead');
+    const name = form.name.value.trim();
+    const phone = form.phone.value.trim();
+    const amount = form.amount.value.trim();
+
+    if (!name || !phone) {
+        alert("Please provide both Name and Phone Number.");
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, `artifacts/${appId}/users/${AppState.user.uid}/leads`), {
+            name: name,
+            phone: phone,
+            amount: amount || 'N/A', // Save optional amount if present
+            status: 'Pending',
+            createdAt: serverTimestamp()
+        });
+        alert('Lead added successfully!');
+        form.reset();
+        window.closeModal('modal-add-lead');
+    } catch (error) {
+        console.error("Error adding lead: ", error);
+        alert('Failed to add lead. Please check your connection.');
+    }
 };
