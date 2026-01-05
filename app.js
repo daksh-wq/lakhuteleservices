@@ -38,98 +38,104 @@ const db = getFirestore(app);
 // Get App ID for correct Firestore paths within this environment
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// --- PRE-LOADED SCRIPTS (Exact Context from CSVs) ---
+// --- PRE-LOADED SCRIPTS (Context-Based for Smart AI) ---
 const PRELOADED_SCRIPTS = [
     {
         id: 'script_1',
-        name: 'Script 1: Important Info (महत्वपूर्ण जानकारी)',
+        name: 'Script 1: Important Info (Mahatvapurn Jankari)',
         content: `
-        CONTEXT: You are Lakhu, a retention agent.
-        GOAL: Get a 200 Rupees recharge commitment to stop permanent disconnection.
+        ROLE: You are Lakhu, a smart and persuasive retention agent for DishTV.
+        SITUATION: The customer's connection is about to be PERMANENTLY DISCONNECTED today because they haven't recharged.
+        CORE GOAL: Convince the customer to recharge for 200 Rupees TODAY. Not tomorrow, TODAY.
         
-        OPENING LINE: "महत्वपूर्ण जानकारी का कॉल है। आपका डिशटीवी का कनेक्शन कंपनी में से आज हमेशा के लिए बंध होने जा रहा है। ये कनेक्शन को कभी भी चालू रखना चाहते हो तो आज ही छोटा 200 रुपए का रिचार्ज करवाना जरूरी है, तो रिचार्ज करवा रहे हो तो में कनेक्शन चालु रखु ?"
+        OPENING LINE: "Namaskar! Important information call from DishTV. Sir, your connection is getting permanently disconnected from the company side today. If you want to keep this connection active anytime in the future, a small recharge of 200 rupees is necessary today. So, should I keep the connection active?"
 
-        SCENARIOS:
-        1. Customer says YES/Agree ("Ha", "Ho jayega", "Karva lunga"):
-           REPLY: "कितने बजे तक हो जाएगा? आज रिचार्ज करवा लीजियेगा क्योकि आपका कनेक्शन आज बंध हो जायेगा तो फिर से चालु नहीं होगा।"
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Urgency: If they delay ("Kal karunga", "Sochunga"), tell them it's too late. It closes TODAY. Once closed, it cannot be reopened easily.
+        2. Future Value: If they say "Bandh kara do" (Close it), ask if they *might* watch TV in 2-3 months? If yes, they MUST recharge 200 rupees now to keep the ID alive. Otherwise, they'll have to buy a whole new connection later (expensive).
+        3. Objection Handling:
+           - "Out of Station": "Sir, when you return, the TV won't work because the ID will be dead. Recharge 200 rupees now to save the ID."
+           - "TV Kharab hai": "Sir, fix the TV later, but save the connection NOW with 200 rupees. Otherwise, a fixed TV is useless without an active connection."
+           - "Money Problem": "Sir, it's just 200 rupees to save your connection from permanent deletion. Please adjust from somewhere."
+           - "Other Company": "Keep this as a backup, Sir. Just 200 rupees keeps it active."
         
-        2. Customer says NO/Close it ("Nahi karvana", "Bandh kara do"):
-           REPLY: "२-३ महीने बाद या भविष्य में तो कभी चालू करोगे ना सर? उसके लिए आज ही 200 का रिचार्ज करना जरूरी है तो आप अपनी मरजी से टीवी देख पाओगे।"
-        
-        3. Customer is Out of Station ("Bahar gaon hu", "Ghar pe nahi hu"):
-           REPLY: "सर आपका कनेक्शन आज बंध हो जायेगा तो बाद में आप घर वापस जाओगे तो ये कनेक्शन चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है तो आप अपनी मरजी से टीवी देख पाओगे।"
-        
-        4. TV Problem ("TV bigad gaya", "Tut gaya"):
-           REPLY: "सर आपका कनेक्शन आज बंध हो जायेगा तो बाद में जब आप टीवी लाओगे तो ये कनेक्शन चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है।"
-        
-        5. Money Problem ("Paise nahi hai"):
-           REPLY: "सर अभी कही से एडजस्ट करवा के रिचार्ज करवा लीजिये क्युकी आपका कनेक्शन आज बंध हो जायेगा तो बाद में चालु नहीं होगा।"
-        
-        6. Other Company ("Dusra le liya", "Jio le liya"):
-           REPLY: "सर आपका कनेक्शन आज बंध हो जायेगा तो फिर से चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है। अगर नए कनेक्शन में कोई प्रॉब्लम आये तो ये पुराना कनेक्शन आप यूज कर सकते हो पर रिचार्ज आपको आज ही करना पड़ेगा"
+        TONE: Helpful but Firm about the deadline. Speak natural Hinglish.
         `
     },
     {
         id: 'script_2',
-        name: 'Script 2: Last Date (आज आखरी दिन)',
+        name: 'Script 2: Last Date (Aaj Aakhri Din)',
         content: `
-        CONTEXT: You are Lakhu. Today is the LAST DAY. Deadline is 6 PM.
-        GOAL: Urgent 200 Rupee recharge before 6 PM.
+        ROLE: You are Lakhu, a DishTV agent. 
+        SITUATION: Today is the LAST DAY. The deadline is specifically 6:00 PM.
+        CORE GOAL: Get a 200 Rupee recharge before 6 PM.
         
-        OPENING LINE: "आज आखरी दिन है । आपका डिशटीवी का कनेक्शन कंपनी में से आज शाम ६ बजे हमेशा के लिए बंध होने जा रहा है। ये कनेक्शन को कभी भी चालू रखना चाहते हो तो आज ही छोटा 200 रुपए का रिचार्ज करवाना जरूरी है, तो रिचार्ज करवा रहे हो तो में कनेक्शन चालु रखु ?"
+        OPENING LINE: "Namaskar! Aaj aakhri din hai. Sir, your DishTV connection is going to be permanently closed today at 6 PM. To keep it active, a small recharge of 200 rupees is required. So, are you recharging?"
 
-        SCENARIOS:
-        1. Agree ("Ha", "Ho jayega"): "कितने बजे तक हो जाएगा? आज रिचार्ज करवा लीजियेगा क्योकि आपका कनेक्शन आज बंध हो जायेगा तो फिर से चालु नहीं होगा।"
-        2. Refuse ("Nahi", "Bandh karo"): "२-३ महीने बाद या भविष्य में तो कभी चालू करोगे ना सर? उसके लिए आज ही 200 का रिचार्ज करना जरूरी है तो आप अपनी मरजी से टीवी देख पाओगे।"
-        3. Out of Station: "सर आपका कनेक्शन आज बंध हो जायेगा तो बाद में आप घर वापस जाओगे तो ये कनेक्शन चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है।"
-        4. Exams ("Bacho ki exam hai"): "एग्जाम कब तक ख़तम हो जायेंगे? सर आपका कनेक्शन आज बंध हो जायेगा तो बाद में जब एग्जाम ख़तम हो जाएगी तब ये कनेक्शन चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है।"
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. The 6 PM Deadline: Use this to create pressure. "Sir, 6 baje ke baad system lock ho jayega."
+        2. Indecisive Customers: If they say "Dekhta hu", say "Sir, time kam hai. 6 baje se pehle karwana padega."
+        3. Refusals: If they refuse, remind them they are losing the connection forever. "Sir, future mein kabhi bhi TV dekhna ho to aaj 200 ka recharge jaruri hai."
+        4. Exams/Kids: If they say kids are studying, say "Exams will end, but this connection won't restart if closed today. Recharge 200 rupees to keep it ready for after exams."
+        
+        TONE: Urgent. You are giving them a last warning to save their connection. Speak natural Hinglish.
         `
     },
     {
         id: 'script_3',
-        name: 'Script 3: Service Call (चालु या बंध)',
+        name: 'Script 3: Service Call (Chalu Ya Bandh)',
         content: `
-        CONTEXT: Service Call to check intent.
-        GOAL: Binary choice: Keep ON (200 Rs) or Close Forever.
+        ROLE: You are Lakhu, doing a "Service Call" for DishTV.
+        SITUATION: You are checking the customer's final intent. Do they want it ON or OFF?
+        CORE GOAL: Force a decision. If they want it ON, they must pay 200 Rupees NOW.
         
-        OPENING LINE: "एक सर्विस कॉल है ,आपके डिशटीवी के कनेक्शन को चालु रखना चाहते हो या हमेशा के लिए बंध कर देना है?"
+        OPENING LINE: "Namaskar, ek service call hai. Sir, do you want to keep your DishTV connection ON or do you want to close it forever?"
 
-        SCENARIOS:
-        1. Keep ON ("Chalu rakhna hai"): "चालु रखना हे तो अभी २०० रुयपे का रिचार्ज करोगे तो ही कनेक्शन चालू होगा, तो हो जायेगा रिचार्ज ?"
-        2. Close IT ("Bandh kara do"): "तो कनेक्शन हमेशा क लिए बंध कर देना है भविष्या में कभी चालू नहीं करोगे? तो कनेक्शा ६ बजे हमेशा क लिए बंध हो जाएगा तो बाद में चालु नहीं होगा अगर आपको कनेक्शन चालू रखना हे तो ६ बजे से पहले २०० रुपए का रिचार्ज करवा लीजियेगा।"
-        3. Out of Station: "सर आपका कनेक्शन आज बंध हो जायेगा तो बाद में आप घर वापस जाओगे तो ये कनेक्शन चालु नहीं होगा। कनेक्शन चालू रखना है तो आज ही 200 का रिचार्ज करना जरूरी है।"
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Binary Choice: Put the ball in their court. "Chalu rakhna hai ya bandh?"
+        2. If "Chalu": "Great, then you must recharge 200 rupees right now. Ho jayega?"
+        3. If "Bandh": "Okay, so you want to close it forever? You will never watch TV on this box again? If there is even 1% chance, recharge 200 rupees to keep it safe."
+        4. Passive Customers: If they are silent or vague, assume they want to save it. "Sir, risk mat lijiye, 200 ka recharge karke chalu rakhiye."
+        
+        TONE: Direct and Professional. Speak natural Hinglish.
         `
     },
     {
         id: 'script_4',
-        name: 'Script 4: Final Call (बंध हो चुका है)',
+        name: 'Script 4: Final Call (Bandh Ho Chuka Hai)',
         content: `
-        CONTEXT: Final Call. Connection is ALREADY CLOSED.
-        GOAL: Reactivation.
+        ROLE: You are Lakhu, DishTV Agent.
+        SITUATION: The connection is TECHNICALLY CLOSED/DISCONNECTED already. You are offering a revival.
+        CORE GOAL: Revive the dead connection with 200 Rupees.
         
-        OPENING LINE: "ये आखरी कॉल है ,आपका डिशटीवी का कनेक्शन कंपनी से बंध हो चुका है , क्या इसे दोबारा कभी चालु करना चाहते हो ?"
+        OPENING LINE: "Namaskar! Ye aakhri call hai. Sir, your DishTV connection has been closed by the company. Do you want to start it again?"
 
-        SCENARIOS:
-        1. Start Again ("Ha", "Chalu karna hai"): "चालु रखना हे तो अभी २०० रुयपे का रिचार्ज करोगे तो ही कनेक्शन चालू होगा, तो हो जायेगा रिचार्ज ?"
-        2. Close ("Nahi", "Bandh rahne do"): "तो कनेक्शन हमेशा क लिए बंध कर देना है भविष्या में कभी चालू नहीं करोगे? तो कनेक्शा ६ बजे हमेशा क लिए बंध हो जाएगा तो बाद में चालु नहीं होगा अगर आपको कनेक्शन चालू रखना हे तो ६ बजे से पहले २०० रुपए का रिचार्ज करवा लीजियेगा।"
-        3. Money Problem: "सर अभी कही से एडजस्ट करवा के रिचार्ज करवा लीजिये क्युकी आपका कनेक्शन आज बंध हो जायेगा तो बाद में चालु नहीं होगा।"
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Revival Logic: "Sir, bandh ho chuka hai. Agar chalu karna hai to abhi 200 ka recharge karna padega."
+        2. "Why 200?": "To reactivate the closed ID."
+        3. "Later": "Sir, aaj final chance hai system mein. Aaj nahi kiya to permanent delete ho jayega."
+        4. "Not Interested": "Sure Sir, but just remember, buying a new box costs 2000 rupees. Reviving this costs only 200 rupees."
+        
+        TONE: Informative and Final. Speak natural Hinglish.
         `
     },
     {
         id: 'script_offer',
-        name: 'Script 5: Special Offer (ऑफर)',
+        name: 'Script 5: Special Offer (Offer)',
         content: `
-        CONTEXT: Special Offer Call.
-        GOAL: Sell "6+3 Months Free" or "3+1 Month Free". Minimum: 100 Rs to keep ID active.
+        ROLE: You are Lakhu, DishTV Offer Specialist.
+        SITUATION: Customer has been inactive. You have a special limited-time offer.
+        CORE GOAL: Sell the "6+3 Months Free" or "3+1 Month Free" offer. MINIMUM GOAL: 100 Rupees to keep ID active.
         
-        OPENING LINE: "Namaskar, Sir/Ma’am, Aapka Dish TV connection pichle kuch dino se band hai. Yadi aapko hamari service istemal karne mein koi asuwidha ho rahi hai to Kripya batayein. Hum apki sahayta karne ki poori koshish karenge."
+        OPENING LINE: "Namaskar! Sir, aapka DishTV connection kuch dino se bandh hai. Are you facing any issues with the service? Hum apki help karna chahte hain."
 
-        SCENARIOS:
-        1. Interested ("Ha", "Offer batao"): "Offer: ६ पे ३ महीना फ्री या ३ पे १ महीना फ्री या कैशबैक ऑफर. रिचार्ज आपको सिंगल ट्रांसक्शन में करना है. ऑफर सिर्फ आज के लिए है."
-        2. Out of Station: "सर आप बहार गांव से कब आने वाले हो? अभी रिचार्ज करवा के आईडी को टेम्पररी डीएक्टिवेट करवा दीजिये। जिसे की आपका आईडी एक्टिवेट हो जाए और आप इस ऑफर का लाभ मिल जाए।"
-        3. TV Problem: "टीवी कबतक आ जायेगा? टीवी ठीक हो जाएगा उस के बाद तो सेटटॉपबॉक्स चालु करोगे ना? अभी रिचार्ज करवा के आईडी को टेम्पररी डीएक्टिवेट करवा दीजिये।"
-        4. Money Problem: "अभी बहेतरीन ऑफर आया है तो कही से एडजस्ट कर के रिचार्ज करवा लीजीये ताकि आप ये ऑफर का लाभ ले पाए. या अभी सिर्फ १०० रुपये का रिचार्ज करवा दीजीयी जिसे की आपका आईडी एक्टिवेट रहेगा।"
-        5. Not Interested: "सर क्या आप मुझे बता सकते हो की किस कारण से आप अभी रिचार्ज नहीं करवा रहे? आप अभी सिर्फ १०० रुपये का रिचार्ज करवा दीजीयी जिसे की आपका आईडी एक्टिवेट रहेगा।"
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Empathy First: Listen to their problem (Money, TV broken, Shifted).
+        2. The Solution (The Offer): "Sir, we have a great offer today. Pay for 6 months, get 3 months FREE! Or Pay for 3 months, get 1 month FREE."
+        3. Downsell (Crucial): If they can't afford the big offer, say: "Koi baat nahi Sir. Kam se kam 100 rupees ka recharge karwa lijiye taaki aapka ID active rahe aur future mein offers milte rahein."
+        4. Value Proposition: "Sir, cashback bhi milega single transaction pe."
+        
+        TONE: Helpful, Friendly, and Exciting (about the offer). Speak natural Hinglish.
         `
     }
 ];
@@ -145,6 +151,7 @@ let AppState = {
     activeCall: null,
     listeners: [],
     apiKeys: {
+        // Pre-filled keys as requested
         gemini: "AIzaSyCkieBuq1FeFRWNhLSS4E9hvyEYd9Us9n0",
         elevenlabs: "de59670d42323e680f07b3c5169072266539c67bab67d0eca48ed56a7a6d17cf"
     }
@@ -152,17 +159,20 @@ let AppState = {
 
 let isCallActive = false;
 let isAiSpeaking = false;
-let currentAudio = null;
+let currentAudio = null; // Store audio object globally to control playback
 
-// --- AUTHENTICATION ---
+// --- AUTHENTICATION LOGIC ---
 window.handleLogin = async (e) => {
     if(e) e.preventDefault();
     const idInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
     
     if (idInput.value === 'lakhu20' && passInput.value === 'lakhu20') {
-        try { await signInAnonymously(auth); } 
-        catch (error) { alert("System Error: " + error.message); }
+        try {
+            await signInAnonymously(auth);
+        } catch (error) {
+            alert("System Error: " + error.message);
+        }
     } else {
         alert("Access Denied: Invalid Operator ID");
         passInput.value = '';
@@ -178,6 +188,7 @@ window.handleLogout = async () => {
 onAuthStateChanged(auth, (user) => {
     const authScreen = document.getElementById('auth-screen');
     const appShell = document.getElementById('app-shell');
+    
     if (user) {
         AppState.user = user;
         authScreen.classList.add('hidden');
@@ -194,17 +205,22 @@ onAuthStateChanged(auth, (user) => {
 // --- DATA SYNC ---
 function initializeDataListeners(userId) {
     const userPath = `artifacts/${appId}/users/${userId}`;
+
+    // Leads
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/leads`), orderBy('createdAt', 'desc')), (snapshot) => {
         AppState.leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(AppState.view === 'leads' || AppState.view === 'dashboard') refreshCurrentView();
     }));
     
+    // Scripts (New Collection)
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/scripts`), orderBy('createdAt', 'desc')), (snapshot) => {
         const dbScripts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Fallback to preloaded scripts if database is empty to ensure UI always works
         AppState.scripts = dbScripts.length > 0 ? dbScripts : PRELOADED_SCRIPTS;
         if(AppState.view === 'campaigns') refreshCurrentView();
     }));
 
+    // Logs
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/logs`), orderBy('createdAt', 'desc')), (snapshot) => {
         AppState.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(AppState.view === 'dashboard') refreshCurrentView();
@@ -223,6 +239,7 @@ function refreshCurrentView() {
 // --- ROUTING ---
 window.router = (view) => {
     AppState.view = view;
+    // Update Sidebar UI
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.classList.remove('bg-slate-800', 'text-white');
         btn.classList.add('text-slate-400');
@@ -232,6 +249,7 @@ window.router = (view) => {
         activeBtn.classList.add('bg-slate-800', 'text-white');
         activeBtn.classList.remove('text-slate-400');
     }
+    
     const container = document.getElementById('content-area');
     container.innerHTML = '';
     
@@ -243,6 +261,7 @@ window.router = (view) => {
 };
 
 // --- VIEWS ---
+
 function renderDashboard(el) {
     const totalCalls = AppState.logs.length;
     const success = AppState.logs.filter(l => l.disposition === 'Converted').length;
@@ -260,10 +279,11 @@ function renderDashboard(el) {
             <div class="glass-panel p-5 rounded-xl border-l-4 border-warning">
                 <div class="text-slate-400 text-xs font-bold uppercase">System Status</div>
                 <div class="text-sm font-bold text-white mt-2">
-                    GenArtML: <span class="text-success">Active</span><br>
-                    Voice: <span class="text-success">Rk0hF1... (Hindi)</span>
+                    GenArtML Key: <span class="text-success">Active</span><br>
+                    Voice Engine: <span class="text-success">Ready (Hindi/Male)</span>
                 </div>
             </div>
+            <!-- Main Call Button -->
             <div class="glass-panel p-5 rounded-xl flex items-center justify-center bg-brand-900/20 border border-brand-500/30">
                 <button onclick="startGeneralSession()" class="w-full h-full flex flex-col items-center justify-center text-brand-400 hover:text-white transition-colors group">
                     <i class="ph-fill ph-phone-call text-3xl mb-2 group-hover:scale-110 transition-transform"></i>
@@ -271,7 +291,9 @@ function renderDashboard(el) {
                 </button>
             </div>
         </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 fade-in">
+            <!-- Call Logs -->
             <div class="lg:col-span-2 glass-panel rounded-xl p-6">
                 <h3 class="text-white font-semibold mb-4">Recent Call Logs</h3>
                 <div class="overflow-x-auto">
@@ -291,6 +313,8 @@ function renderDashboard(el) {
                     </table>
                 </div>
             </div>
+
+            <!-- Quick Action: Leads to Call -->
             <div class="glass-panel rounded-xl p-6 flex flex-col">
                 <h3 class="text-white font-semibold mb-4 flex justify-between items-center">
                     <span>Pending Calls</span>
@@ -308,7 +332,7 @@ function renderDashboard(el) {
                             </button>
                         </div>
                     `).join('')}
-                    ${AppState.leads.filter(l => l.status === 'Pending').length === 0 ? '<p class="text-slate-500 text-sm text-center py-4">No pending leads. Start a session to call "Guest".</p>' : ''}
+                    ${AppState.leads.filter(l => l.status === 'Pending').length === 0 ? '<p class="text-slate-500 text-sm text-center py-4">No pending leads. Start a general session to call manually.</p>' : ''}
                 </div>
                 <div class="mt-auto pt-4 border-t border-dark-border">
                     <button onclick="openModal('modal-add-lead')" class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded text-sm font-medium">Add Quick Lead</button>
@@ -347,16 +371,23 @@ function renderLeads(el) {
                         <i class="ph ph-file-csv mr-1"></i> Import Excel
                     </button>
                     <input type="file" id="lead-upload" accept=".csv,.xlsx" class="hidden" onchange="handleLeadUpload(event)">
+                    
                     <button onclick="openModal('modal-add-lead')" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium">
                         <i class="ph ph-plus mr-1"></i> Add Manual
                     </button>
                 </div>
             </div>
+            
             <div class="glass-panel rounded-xl overflow-hidden flex-1 flex flex-col">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-900/80 sticky top-0 backdrop-blur-md z-10 text-xs uppercase text-slate-400">
-                            <tr><th class="p-4">Name</th><th class="p-4">Phone</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                            <tr>
+                                <th class="p-4">Name</th>
+                                <th class="p-4">Phone</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
                         </thead>
                         <tbody class="divide-y divide-dark-border text-sm">
                             ${AppState.leads.map(l => `
@@ -385,6 +416,7 @@ function renderActiveCallPage(el) {
 
     el.innerHTML = `
         <div class="h-full flex flex-col fade-in relative">
+            <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -403,7 +435,9 @@ function renderActiveCallPage(el) {
                     </button>
                 </div>
             </div>
+
             <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
+                <!-- Visualizer & AI Status -->
                 <div class="lg:col-span-2 flex flex-col gap-6">
                     <div class="glass-panel rounded-2xl p-8 flex flex-col items-center justify-center h-64 relative overflow-hidden">
                         <div class="absolute inset-0 bg-gradient-to-b from-transparent to-brand-900/20 pointer-events-none"></div>
@@ -412,11 +446,15 @@ function renderActiveCallPage(el) {
                             ${Array(30).fill(0).map(() => `<div class="w-2 bg-slate-700 rounded-full h-2 transition-all duration-75"></div>`).join('')}
                         </div>
                     </div>
+
+                    <!-- Transcript -->
                     <div class="glass-panel rounded-2xl flex-1 flex flex-col overflow-hidden">
                         <div class="p-4 border-b border-dark-border bg-slate-900/50 text-xs font-bold text-slate-400 uppercase">Live Transcript</div>
                         <div id="live-transcript" class="flex-1 overflow-y-auto p-6 space-y-4 font-mono text-sm">
                             <div class="text-slate-500 italic text-center">-- Call Initialized --</div>
                         </div>
+                        
+                        <!-- Hidden form for speech input logic -->
                         <div class="p-4 bg-slate-900 border-t border-dark-border hidden">
                             <form onsubmit="handleUserResponse(event)" class="flex gap-2">
                                 <input type="text" id="user-input" class="hidden"> 
@@ -424,6 +462,8 @@ function renderActiveCallPage(el) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Script Context Sidebar -->
                 <div class="glass-panel rounded-2xl p-6 flex flex-col overflow-hidden border-l border-brand-500/30">
                     <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-brain text-brand-500"></i> AI Brain Context</h3>
                     <div class="flex-1 overflow-y-auto text-sm text-slate-300 space-y-4 pr-2">
@@ -436,12 +476,17 @@ function renderActiveCallPage(el) {
         </div>
     `;
     
+    // Auto-start the conversation with Opening Line
     isCallActive = true;
     setTimeout(() => {
-        let opening = "Namaskar Sir, kya meri baat " + lead.name + " se ho rahi hai?";
-        if(script.content.includes('OPENING LINE:')) {
+        // Extract opening line or fallback
+        let opening = "Namaskar Sir, Lakhu here from DishTV.";
+        if(script.content.includes('OPENING:')) {
+            opening = script.content.split('OPENING:')[1].split('\n')[0].replace(/"/g, '').trim();
+        } else if(script.content.includes('OPENING LINE:')) {
             opening = script.content.split('OPENING LINE:')[1].split('\n')[0].replace(/"/g, '').trim();
         }
+        
         addTranscriptBubble("Lakhu (AI)", opening);
         aiSpeak(opening);
     }, 1500);
@@ -465,14 +510,15 @@ function renderConfig(el) {
     `;
 }
 
-// --- SPEECH RECOGNITION (Google Web Speech API) ---
+// --- SPEECH RECOGNITION LOGIC ---
 let recognition;
+
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.continuous = false; 
     recognition.interimResults = false;
-    recognition.lang = 'hi-IN';
+    recognition.lang = 'hi-IN'; // Optimized for Hindi/Hinglish
 
     recognition.onstart = function() {
         const btn = document.getElementById('mic-toggle-btn');
@@ -493,6 +539,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             btn.classList.add('bg-slate-800', 'border-dark-border');
             txt.innerText = "Mic Ready";
         }
+        
         if (isCallActive && !isAiSpeaking) {
             setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
         }
@@ -514,18 +561,20 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         }
     };
 } else {
-    console.warn("Speech Recognition API not supported.");
+    console.warn("Speech Recognition API not supported in this browser.");
 }
 
 window.toggleMic = () => {
     if (!recognition) {
-        alert("Speech Recognition not supported. Use Chrome.");
+        alert("Speech Recognition is not supported in this browser. Please use Chrome.");
         return;
     }
     try { recognition.start(); } catch (e) { recognition.stop(); }
 };
 
-// --- LOGIC: INTELLIGENT AI (Gemini) ---
+// --- LOGIC: ACTIVE CALL (INTELLIGENT AI) ---
+
+// 2. Gemini Logic - ULTRA SMART CONTEXT AWARE
 async function processAIResponse(userText) {
     if(!AppState.apiKeys.gemini) {
         addTranscriptBubble("System", "Error: GenArtML Key missing.");
@@ -536,25 +585,27 @@ async function processAIResponse(userText) {
     
     const { lead, script } = AppState.activeCall;
     
+    // SMART PROMPT: Focuses on Context, Goal, and Natural Conversation
     const prompt = `
-        You are Lakhu, an intelligent retention agent for DishTV.
-        GOAL: ${script.name.includes('Offer') ? 'Sell the Offer or get 100 rupees.' : 'Get 200 Rupees recharge commitment TODAY.'}
+        You are Lakhu, an intelligent and empathetic retention agent for DishTV.
         
-        CONTEXT:
+        YOUR GOAL: ${script.name.includes('Offer') ? 'Sell the Special Offer or get minimum 100 rupees.' : 'Get a 200 Rupees recharge commitment TODAY to save the connection.'}
+        
+        CONTEXT & GUIDELINES (Use this to understand the situation):
         ${script.content}
 
         CUSTOMER SAID: "${userText}"
 
         INSTRUCTIONS:
-        1. UNDERSTAND intent (Agreement, Refusal, Excuse).
-        2. REPLY IN PURE HINDI (Devanagari script preferred) or clear Hinglish.
-        3. DO NOT use English words unless strictly technical (e.g. 'Recharge', 'Connection').
-        4. BE NATURAL. Do not repeat lines robotically.
-        5. IF they agree: "बहुत बढ़िया सर, २०० रुपये का रिचार्ज अभी कर लीजिये."
-        6. IF they refuse: Use the context points to persuade.
-        7. SPELL "rupees" fully. Never use symbols.
-        
-        RESPONSE (Pure Hindi):
+        1. UNDERSTAND the customer's intent (Agreement, Refusal, Excuse, Question).
+        2. FORMULATE a natural, human-like response in HINGLISH (Hindi + English). 
+        3. DO NOT repeat the same lines robotically. Adapt your phrasing.
+        4. IF they agree, close the deal: "Great sir, 200 rupees ka recharge abhi kar lijiye."
+        5. IF they refuse/make excuses, use the "KEY POINTS" from the context to persuade them naturally.
+        6. ALWAYS spell currency as "rupees". Never use symbols.
+        7. Keep response short (1-2 sentences).
+
+        YOUR NATURAL RESPONSE (in Hinglish):
     `;
 
     try {
@@ -568,7 +619,13 @@ async function processAIResponse(userText) {
         
         if (data.candidates && data.candidates.length > 0) {
             let aiText = data.candidates[0].content.parts[0].text;
-            aiText = aiText.replace(/(\d+)\s*rs/gi, "$1 rupees").replace(/₹(\d+)/g, "$1 rupees").replace(/Rs\.?\s*(\d+)/gi, "$1 rupees").replace(/\*/g, ""); 
+            
+            // Safety formatting
+            aiText = aiText.replace(/(\d+)\s*rs/gi, "$1 rupees")
+                           .replace(/₹(\d+)/g, "$1 rupees")
+                           .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees")
+                           .replace(/\*/g, ""); 
+            
             addTranscriptBubble("Lakhu (AI)", aiText);
             await aiSpeak(aiText);
         } else {
@@ -584,7 +641,7 @@ async function processAIResponse(userText) {
     }
 }
 
-// --- LOGIC: VOICE OUTPUT (ElevenLabs) ---
+// 3. ElevenLabs Logic (Humanly Hindi Female Voice)
 async function aiSpeak(text) {
     if(!AppState.apiKeys.elevenlabs) {
         addTranscriptBubble("System", "Voice Skipped: Key missing.");
@@ -597,15 +654,14 @@ async function aiSpeak(text) {
     updateAIStatus("SPEAKING...", "text-green-400");
     startWaveformAnimation();
 
-    const safeText = text.replace(/(\d+)\s*rs/gi, "$1 rupees").replace(/₹(\d+)/g, "$1 rupees").replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
+    const safeText = text.replace(/(\d+)\s*rs/gi, "$1 rupees")
+                         .replace(/₹(\d+)/g, "$1 rupees")
+                         .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
 
-    // Primary Voice: Requested by User (Rk0hF1X0z2RQCmWH9SCb - Indian Female)
-    const PRIMARY_VOICE_ID = 'Rk0hF1X0z2RQCmWH9SCb';
-    // Fallback: Bella (known reliable female voice)
-    const FALLBACK_VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; 
-
-    async function trySpeak(voiceId) {
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    try {
+        // Voice ID: 'EXAVITQu4vr4xnSDxMaL' (Bella - Female, clear articulation)
+        // Using "eleven_multilingual_v2" for best Hindi support
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL`, {
             method: 'POST',
             headers: {
                 'xi-api-key': AppState.apiKeys.elevenlabs,
@@ -615,7 +671,7 @@ async function aiSpeak(text) {
                 text: safeText,
                 model_id: "eleven_multilingual_v2",
                 voice_settings: { 
-                    stability: 0.4,
+                    stability: 0.4,       // Lower = more expressive
                     similarity_boost: 0.8, 
                     style: 0.5,           
                     use_speaker_boost: true 
@@ -623,25 +679,7 @@ async function aiSpeak(text) {
             })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            // If 400 or 401, likely issue with voice ID or plan limits -> trigger fallback
-            throw new Error(errorData.detail?.message || `API Error: ${response.status}`);
-        }
-        return await response.blob();
-    }
-
-    try {
-        let blob;
-        try {
-            blob = await trySpeak(PRIMARY_VOICE_ID);
-        } catch (primaryError) {
-            console.warn(`Primary voice failed: ${primaryError.message}. Using fallback.`);
-            blob = await trySpeak(FALLBACK_VOICE_ID);
-        }
-
-        if (blob.size === 0) throw new Error("Empty audio");
-
+        const blob = await response.blob();
         currentAudio = new Audio(URL.createObjectURL(blob));
         await currentAudio.play();
         
@@ -665,13 +703,17 @@ async function aiSpeak(text) {
 }
 
 // --- SCRIPT & CALL SETUP ---
-window.startGeneralSession = () => { openScriptSelector('guest'); };
+
+window.startGeneralSession = () => {
+    openScriptSelector('guest');
+};
 
 window.openScriptSelector = (leadId) => {
     if(AppState.scripts.length === 0) {
         alert("System Error: Scripts not loaded.");
         return;
     }
+
     const modalHtml = `
         <div id="modal-script-select" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center fade-in">
             <div class="glass-panel w-full max-w-md rounded-xl p-6">
@@ -699,12 +741,20 @@ window.openScriptSelector = (leadId) => {
 
 window.confirmScriptSelection = (leadId) => {
     const selected = document.querySelector('input[name="script_choice"]:checked');
-    if (selected) startCallWithScript(leadId, selected.value);
-    else alert("Please select a strategy.");
+    if (selected) {
+        startCallWithScript(leadId, selected.value);
+    } else {
+        alert("Please select a strategy to continue.");
+    }
 };
 
 window.startCallWithScript = (leadId, scriptId) => {
-    let lead = (leadId === 'guest') ? { id: 'guest', name: 'Guest User', phone: 'Unknown', status: 'Guest' } : AppState.leads.find(l => l.id === leadId);
+    let lead;
+    if (leadId === 'guest') {
+        lead = { id: 'guest', name: 'Guest User', phone: 'Unknown', status: 'Guest' };
+    } else {
+        lead = AppState.leads.find(l => l.id === leadId);
+    }
     const script = AppState.scripts.find(s => s.id === scriptId);
     document.getElementById('modal-script-select').remove();
     AppState.activeCall = { lead, script };
@@ -712,13 +762,21 @@ window.startCallWithScript = (leadId, scriptId) => {
 };
 
 window.endActiveCall = async () => {
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    // 1. Immediately Stop Audio
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null; // Clear reference
+    }
     stopWaveformAnimation();
+    
+    // 2. Stop Listening
     isCallActive = false; 
     if(recognition) try{ recognition.stop(); }catch(e){}
     
+    const { lead } = AppState.activeCall;
+    
     if(AppState.user) {
-        const { lead } = AppState.activeCall;
         await addDoc(collection(db, `artifacts/${appId}/users/${AppState.user.uid}/logs`), {
             number: lead.phone,
             disposition: 'Converted', 
@@ -734,13 +792,16 @@ window.endActiveCall = async () => {
 };
 
 window.handleLeadUpload = (e) => {
+    // ... (Existing lead upload logic) ...
     const file = e.target.files[0];
     if(!file || !AppState.user) return;
+    
     const reader = new FileReader();
     reader.onload = async (event) => {
         const text = event.target.result;
         const lines = text.split('\n');
         let count = 0;
+        
         const batchPromises = [];
         lines.forEach(line => {
             const parts = line.split(',');
@@ -751,7 +812,7 @@ window.handleLeadUpload = (e) => {
                     batchPromises.push(addDoc(collection(db, `artifacts/${appId}/users/${AppState.user.uid}/leads`), {
                         name: name,
                         phone: phone,
-                        amount: 'N/A', 
+                        amount: 'N/A', // Default amount
                         status: 'Pending',
                         createdAt: serverTimestamp()
                     }));
@@ -759,11 +820,12 @@ window.handleLeadUpload = (e) => {
                 }
             }
         });
+
         if(batchPromises.length > 0) {
             await Promise.all(batchPromises);
-            alert(`Uploaded ${count} contacts!`);
+            alert(`Successfully uploaded ${count} contacts!`);
         } else {
-            alert("No valid contacts found. Use CSV format: Name,Phone");
+            alert("No valid contacts found. Please use CSV format: Name,Phone");
         }
     };
     reader.readAsText(file);
@@ -773,6 +835,7 @@ window.handleLeadUpload = (e) => {
 function addTranscriptBubble(role, text) {
     const container = document.getElementById('live-transcript');
     const isAI = role.includes('AI');
+    
     const div = document.createElement('div');
     div.className = `flex flex-col ${isAI ? 'items-start' : 'items-end'}`;
     div.innerHTML = `
@@ -793,6 +856,7 @@ function updateAIStatus(msg, colorClass) {
     }
 }
 
+// ... (Animation Helpers) ...
 let waveInterval;
 function startWaveformAnimation() {
     const bars = document.getElementById('live-waveform').children;
@@ -817,6 +881,7 @@ function stopWaveformAnimation() {
 window.closeModal = (id) => { document.getElementById(id).classList.add('hidden'); };
 window.openModal = (id) => { document.getElementById(id).classList.remove('hidden'); };
 window.handleSaveLead = async (e) => {
+    // ... (Existing save lead logic) ...
     e.preventDefault();
     if (!AppState.user) return;
     const form = e.target;
