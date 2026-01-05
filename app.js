@@ -59,7 +59,7 @@ const PRELOADED_SCRIPTS = [
            - "Money Problem": "Sir, it's just 200 rupees to save your connection from permanent deletion. Please adjust from somewhere."
            - "Other Company": "Keep this as a backup, Sir. Just 200 rupees keeps it active."
         
-        TONE: Helpful but Firm about the deadline. Speak natural Hinglish.
+        TONE: Helpful but Firm about the deadline. Speak Pure Hindi.
         `
     },
     {
@@ -78,7 +78,7 @@ const PRELOADED_SCRIPTS = [
         3. Refusals: If they refuse, remind them they are losing the connection forever. "Sir, future mein kabhi bhi TV dekhna ho to aaj 200 ka recharge jaruri hai."
         4. Exams/Kids: If they say kids are studying, say "Exams will end, but this connection won't restart if closed today. Recharge 200 rupees to keep it ready for after exams."
         
-        TONE: Urgent. You are giving them a last warning to save their connection. Speak natural Hinglish.
+        TONE: Urgent. You are giving them a last warning to save their connection. Speak Pure Hindi.
         `
     },
     {
@@ -97,7 +97,7 @@ const PRELOADED_SCRIPTS = [
         3. If "Bandh": "Okay, so you want to close it forever? You will never watch TV on this box again? If there is even 1% chance, recharge 200 rupees to keep it safe."
         4. Passive Customers: If they are silent or vague, assume they want to save it. "Sir, risk mat lijiye, 200 ka recharge karke chalu rakhiye."
         
-        TONE: Direct and Professional. Speak natural Hinglish.
+        TONE: Direct and Professional. Speak Pure Hindi.
         `
     },
     {
@@ -116,7 +116,7 @@ const PRELOADED_SCRIPTS = [
         3. "Later": "Sir, aaj final chance hai system mein. Aaj nahi kiya to permanent delete ho jayega."
         4. "Not Interested": "Sure Sir, but just remember, buying a new box costs 2000 rupees. Reviving this costs only 200 rupees."
         
-        TONE: Informative and Final. Speak natural Hinglish.
+        TONE: Informative and Final. Speak Pure Hindi.
         `
     },
     {
@@ -135,7 +135,7 @@ const PRELOADED_SCRIPTS = [
         3. Downsell (Crucial): If they can't afford the big offer, say: "Koi baat nahi Sir. Kam se kam 100 rupees ka recharge karwa lijiye taaki aapka ID active rahe aur future mein offers milte rahein."
         4. Value Proposition: "Sir, cashback bhi milega single transaction pe."
         
-        TONE: Helpful, Friendly, and Exciting (about the offer). Speak natural Hinglish.
+        TONE: Helpful, Friendly, and Exciting (about the offer). Speak Pure Hindi.
         `
     }
 ];
@@ -279,7 +279,7 @@ function renderDashboard(el) {
                 <div class="text-slate-400 text-xs font-bold uppercase">System Status</div>
                 <div class="text-sm font-bold text-white mt-2">
                     GenArtML Key: <span class="text-success">Active</span><br>
-                    Voice Engine: <span class="text-success">Ready (Hindi/Male)</span>
+                    Voice Engine: <span class="text-success">Ready (Hindi/Female)</span>
                 </div>
             </div>
             <!-- Main Call Button -->
@@ -517,7 +517,7 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition = new SpeechRecognition();
     recognition.continuous = false; 
     recognition.interimResults = false;
-    recognition.lang = 'hi-IN'; // Optimized for Hindi/Hinglish
+    recognition.lang = 'hi-IN'; // Optimized for Hindi
 
     recognition.onstart = function() {
         const btn = document.getElementById('mic-toggle-btn');
@@ -597,14 +597,14 @@ async function processAIResponse(userText) {
 
         INSTRUCTIONS:
         1. UNDERSTAND the customer's intent (Agreement, Refusal, Excuse, Question).
-        2. FORMULATE a natural, human-like response in PURE HINDI (or very clear Hinglish if technical). 
+        2. FORMULATE a natural, human-like response in PURE HINDI (Devanagari script style or clear transliteration, avoiding English words unless technical like 'Recharge', 'Connection').
         3. DO NOT repeat the same lines robotically. Adapt your phrasing.
         4. IF they agree, close the deal: "Boht badhiya Sir, 200 rupees ka recharge abhi kar lijiye."
         5. IF they refuse/make excuses, use the "KEY POINTS" from the context to persuade them naturally.
         6. ALWAYS spell currency as "rupees". Never use symbols.
         7. Keep response short (1-2 sentences).
 
-        YOUR NATURAL RESPONSE (in Pure Hindi):
+        YOUR NATURAL RESPONSE (in Pure Hindi/Clear Hinglish):
     `;
 
     try {
@@ -658,9 +658,9 @@ async function aiSpeak(text) {
                          .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
 
     try {
-        // Voice ID: 'EXAVITQu4vr4xnSDxMaL' (Bella - Female, clear articulation)
+        // Voice ID: 'Rk0hF1X0z2RQCmWH9SCb' (Indian Female)
         // Using "eleven_multilingual_v2" for best Hindi support
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL`, {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/Rk0hF1X0z2RQCmWH9SCb`, {
             method: 'POST',
             headers: {
                 'xi-api-key': AppState.apiKeys.elevenlabs,
