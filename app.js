@@ -44,20 +44,22 @@ const PRELOADED_SCRIPTS = [
         id: 'script_1',
         name: 'Script 1: Important Info (Mahatvapurn Jankari)',
         content: `
-        ROLE: You are Lakhu, a smart and persuasive retention agent for DishTV.
+        CONTEXT: You are Lakhu, a smart and persuasive retention agent for DishTV.
         SITUATION: The customer's connection is about to be PERMANENTLY DISCONNECTED today because they haven't recharged.
         CORE GOAL: Convince the customer to recharge for 200 Rupees TODAY. Not tomorrow, TODAY.
         
         OPENING LINE: "Namaskar! Important information call from DishTV. Sir, your connection is getting permanently disconnected from the company side today. If you want to keep this connection active anytime in the future, a small recharge of 200 rupees is necessary today. So, should I keep the connection active?"
 
-        KEY POINTS & REBUTTALS (Hindi):
-        - Agreement (Ha/Ho jayega): "Kitne baje tak ho jayega? Aaj recharge karwa lijiye kyunki aaj bandh ho jayega to fir se chalu nahi hoga."
-        - Refusal (Nahi karvana/Bandh kara do): "Future mein kabhi to chalu karenge na sir? Uske liye aaj 200 ka recharge zaruri hai taaki ID active rahe."
-        - Out of Station: "Sir aaj bandh ho gaya to wapas aane par bhi nahi chalega. Aaj hi 200 ka recharge karke ID bacha lijiye."
-        - TV Problem: "TV jab theek hoga tab connection bandh milega agar aaj recharge nahi kiya. Isliye 200 ka recharge abhi kar lijiye."
-        - Money Problem: "Sir sirf 200 rupaye ki baat hai, kahi se adjust karke connection bacha lijiye."
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Urgency: If they delay ("Kal karunga", "Sochunga"), tell them it's too late. It closes TODAY. Once closed, it cannot be reopened easily.
+        2. Future Value: If they say "Bandh kara do" (Close it), ask if they *might* watch TV in 2-3 months? If yes, they MUST recharge 200 rupees now to keep the ID alive. Otherwise, they'll have to buy a whole new connection later (expensive).
+        3. Objection Handling:
+           - "Out of Station": "Sir, when you return, the TV won't work because the ID will be dead. Recharge 200 rupees now to save the ID."
+           - "TV Kharab hai": "Sir, fix the TV later, but save the connection NOW with 200 rupees. Otherwise, a fixed TV is useless without an active connection."
+           - "Money Problem": "Sir, it's just 200 rupees to save your connection from permanent deletion. Please adjust from somewhere."
+           - "Other Company": "Keep this as a backup, Sir. Just 200 rupees keeps it active."
         
-        TONE: Helpful but Firm about the deadline. Speak ONLY Hindi.
+        TONE: Helpful but Firm about the deadline. Speak natural Hinglish.
         `
     },
     {
@@ -70,13 +72,13 @@ const PRELOADED_SCRIPTS = [
         
         OPENING LINE: "Namaskar! Aaj aakhri din hai. Sir, your DishTV connection is going to be permanently closed today at 6 PM. To keep it active, a small recharge of 200 rupees is required. So, are you recharging?"
 
-        KEY POINTS & REBUTTALS (Hindi):
-        - Deadline Warning: "Sir 6 baje ke baad system lock ho jayega."
-        - Agreement: "Thik hai sir, 6 baje se pehle karwa lena."
-        - Refusal: "Sir 2-3 mahine baad bhi dekhna ho to aaj recharge karna padega."
-        - Exams: "Exam ke baad connection chalu nahi hoga agar aaj bandh ho gaya. 200 ka recharge kar lijiye."
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. The 6 PM Deadline: Use this to create pressure. "Sir, 6 baje ke baad system lock ho jayega."
+        2. Indecisive Customers: If they say "Dekhta hu", say "Sir, time kam hai. 6 baje se pehle karwana padega."
+        3. Refusals: If they refuse, remind them they are losing the connection forever. "Sir, future mein kabhi bhi TV dekhna ho to aaj 200 ka recharge jaruri hai."
+        4. Exams/Kids: If they say kids are studying, say "Exams will end, but this connection won't restart if closed today. Recharge 200 rupees to keep it ready for after exams."
         
-        TONE: Urgent. Speak ONLY Hindi.
+        TONE: Urgent. You are giving them a last warning to save their connection. Speak natural Hinglish.
         `
     },
     {
@@ -89,12 +91,13 @@ const PRELOADED_SCRIPTS = [
         
         OPENING LINE: "Namaskar, ek service call hai. Sir, do you want to keep your DishTV connection ON or do you want to close it forever?"
 
-        KEY POINTS & REBUTTALS (Hindi):
-        - Keep ON (Chalu rakhna hai): "To abhi 200 ka recharge karna padega. Ho jayega?"
-        - Close IT (Bandh kara do): "Hamesha ke liye bandh kar de? Future mein kabhi nahi dekhna? Agar chance hai to aaj 200 ka recharge kar lijiye."
-        - Indecisive: "Sir risk mat lijiye, 200 ka recharge karke chalu rakhiye."
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Binary Choice: Put the ball in their court. "Chalu rakhna hai ya bandh?"
+        2. If "Chalu": "Great, then you must recharge 200 rupees right now. Ho jayega?"
+        3. If "Bandh": "Okay, so you want to close it forever? You will never watch TV on this box again? If there is even 1% chance, recharge 200 rupees to keep it safe."
+        4. Passive Customers: If they are silent or vague, assume they want to save it. "Sir, risk mat lijiye, 200 ka recharge karke chalu rakhiye."
         
-        TONE: Direct and Professional. Speak ONLY Hindi.
+        TONE: Direct and Professional. Speak natural Hinglish.
         `
     },
     {
@@ -107,12 +110,13 @@ const PRELOADED_SCRIPTS = [
         
         OPENING LINE: "Namaskar! Ye aakhri call hai. Sir, your DishTV connection has been closed by the company. Do you want to start it again?"
 
-        KEY POINTS & REBUTTALS (Hindi):
-        - Yes (Chalu karna hai): "To abhi 200 ka recharge kariye, connection wapas chalu ho jayega."
-        - No (Bandh rehne do): "Soch lijiye sir, aaj final chance hai. Baad mein naya box lena padega jo mehnga hai."
-        - Money Problem: "Sir sirf 200 rupaye mein connection bach jayega."
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Revival Logic: "Sir, bandh ho chuka hai. Agar chalu karna hai to abhi 200 ka recharge karna padega."
+        2. "Why 200?": "To reactivate the closed ID."
+        3. "Later": "Sir, aaj final chance hai system mein. Aaj nahi kiya to permanent delete ho jayega."
+        4. "Not Interested": "Sure Sir, but just remember, buying a new box costs 2000 rupees. Reviving this costs only 200 rupees."
         
-        TONE: Informative and Final. Speak ONLY Hindi.
+        TONE: Informative and Final. Speak natural Hinglish.
         `
     },
     {
@@ -125,12 +129,13 @@ const PRELOADED_SCRIPTS = [
         
         OPENING LINE: "Namaskar! Sir, aapka DishTV connection kuch dino se bandh hai. Are you facing any issues with the service? Hum apki help karna chahte hain."
 
-        KEY POINTS & REBUTTALS (Hindi):
-        - Interested: "Offer ye hai: 6 mahine pe 3 mahina free, ya 3 mahine pe 1 mahina free. Aaj hi karwana padega."
-        - Out of Station: "Recharge karke ID ko temporary deactivate karwa dijiye, offer mil jayega."
-        - Money Problem/Not Interested: "Koi baat nahi sir, kam se kam 100 rupaye ka recharge karwa lijiye taaki ID active rahe."
+        KEY POINTS TO USE INTELLIGENTLY:
+        1. Empathy First: Listen to their problem (Money, TV broken, Shifted).
+        2. The Solution (The Offer): "Sir, we have a great offer today. Pay for 6 months, get 3 months FREE! Or Pay for 3 months, get 1 month FREE."
+        3. Downsell (Crucial): If they can't afford the big offer, say: "Koi baat nahi Sir. Kam se kam 100 rupees ka recharge karwa lijiye taaki aapka ID active rahe aur future mein offers milte rahein."
+        4. Value Proposition: "Sir, cashback bhi milega single transaction pe."
         
-        TONE: Helpful, Friendly, and Exciting. Speak ONLY Hindi.
+        TONE: Helpful, Friendly, and Exciting (about the offer). Speak natural Hinglish.
         `
     }
 ];
@@ -146,9 +151,11 @@ let AppState = {
     activeCall: null,
     listeners: [],
     apiKeys: {
+        // Pre-filled keys
         gemini: "AIzaSyCkieBuq1FeFRWNhLSS4E9hvyEYd9Us9n0",
         elevenlabs: "de59670d42323e680f07b3c5169072266539c67bab67d0eca48ed56a7a6d17cf"
-    }
+    },
+    conversationHistory: [] // New: Track history to avoid repetition
 };
 
 let isCallActive = false;
@@ -200,20 +207,17 @@ onAuthStateChanged(auth, (user) => {
 function initializeDataListeners(userId) {
     const userPath = `artifacts/${appId}/users/${userId}`;
 
-    // Leads
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/leads`), orderBy('createdAt', 'desc')), (snapshot) => {
         AppState.leads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(AppState.view === 'leads' || AppState.view === 'dashboard') refreshCurrentView();
     }));
     
-    // Scripts
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/scripts`), orderBy('createdAt', 'desc')), (snapshot) => {
         const dbScripts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         AppState.scripts = dbScripts.length > 0 ? dbScripts : PRELOADED_SCRIPTS;
         if(AppState.view === 'campaigns') refreshCurrentView();
     }));
 
-    // Logs
     AppState.listeners.push(onSnapshot(query(collection(db, `${userPath}/logs`), orderBy('createdAt', 'desc')), (snapshot) => {
         AppState.logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(AppState.view === 'dashboard') refreshCurrentView();
@@ -253,7 +257,6 @@ window.router = (view) => {
 };
 
 // --- VIEWS ---
-
 function renderDashboard(el) {
     const totalCalls = AppState.logs.length;
     const success = AppState.logs.filter(l => l.disposition === 'Converted').length;
@@ -447,7 +450,10 @@ function renderActiveCallPage(el) {
         </div>
     `;
     
+    // Clear history for new call
+    AppState.conversationHistory = [];
     isCallActive = true;
+    
     setTimeout(() => {
         let opening = "Namaskar Sir, Lakhu here from DishTV.";
         if(script.content.includes('OPENING:')) {
@@ -455,6 +461,9 @@ function renderActiveCallPage(el) {
         } else if(script.content.includes('OPENING LINE:')) {
             opening = script.content.split('OPENING LINE:')[1].split('\n')[0].replace(/"/g, '').trim();
         }
+        
+        // Add opening to history
+        AppState.conversationHistory.push(`AI: ${opening}`);
         addTranscriptBubble("Lakhu (AI)", opening);
         aiSpeak(opening);
     }, 1500);
@@ -520,7 +529,6 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     };
     
     recognition.onerror = function(event) {
-        console.error("Speech recognition error", event.error);
         if (event.error !== 'no-speech') {
              stopWaveformAnimation();
              updateAIStatus("MIC ERROR", "text-red-500");
@@ -547,26 +555,33 @@ async function processAIResponse(userText) {
     updateAIStatus("THINKING...", "text-purple-400");
     const { lead, script } = AppState.activeCall;
     
-    // Fallback Logic: Simple Keyword Matching in case Gemini Fails
-    const fallbackResponse = (input) => {
-        input = input.toLowerCase();
-        if (input.includes("hello") || input.includes("kon")) return "Namaskar, main Lakhu bol rahi hoon DishTV se.";
-        if (input.includes("ha") || input.includes("yes") || input.includes("thik hai")) return "Bahut badhiya sir, 200 rupees ka recharge abhi kar lijiye connection chalu rakhne ke liye.";
-        if (input.includes("nahi") || input.includes("no") || input.includes("bandh")) return "Sir, agar aaj bandh ho gaya to hamesha ke liye bandh ho jayega. Sirf 200 rupees ki baat hai.";
-        if (input.includes("paise") || input.includes("money")) return "Sir, connection bachane ke liye kahi se adjust kar lijiye. Baad mein naya connection mehnga padega.";
-        return "Sir, connection aaj bandh hone wala hai. Kya aap 200 rupees ka recharge karwayenge?";
-    };
+    // Add user input to history
+    AppState.conversationHistory.push(`User: ${userText}`);
+    
+    // Limit history to last 6 exchanges to keep prompt size manageable
+    const recentHistory = AppState.conversationHistory.slice(-6).join("\n");
 
     const prompt = `
         SYSTEM: You are Lakhu, a DishTV retention agent speaking PURE HINDI (or natural Hinglish).
         GOAL: ${script.name.includes('Offer') ? 'Sell Offer/Get 100 Rs' : 'Get 200 Rs Recharge TODAY'}
         CONTEXT: ${script.content}
+        
+        CONVERSATION HISTORY:
+        ${recentHistory}
+        
         USER SAID: "${userText}"
-        INSTRUCTIONS: Reply naturally in Hindi/Hinglish. Keep it short. NO English explanation.
+        
+        INSTRUCTIONS: 
+        1. Reply naturally in Hindi/Hinglish. 
+        2. Keep it short. 
+        3. NO English explanation.
+        4. Do NOT repeat the last thing you said.
+        5. Answer the user's specific query if any, then pivot to recharge.
     `;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${AppState.apiKeys.gemini}`, {
+        // Use gemini-2.5-flash-preview-09-2025 which is supported
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${AppState.apiKeys.gemini}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -578,21 +593,35 @@ async function processAIResponse(userText) {
             let aiText = data.candidates[0].content.parts[0].text;
             // Clean up text
             aiText = aiText.replace(/(\d+)\s*rs/gi, "$1 rupees").replace(/\*/g, ""); 
+            
+            // Add AI response to history
+            AppState.conversationHistory.push(`AI: ${aiText}`);
+            
             addTranscriptBubble("Lakhu (AI)", aiText);
             await aiSpeak(aiText);
         } else {
             console.warn("Gemini API returned no candidates. Using Fallback.");
-            const backupText = fallbackResponse(userText);
-            addTranscriptBubble("Lakhu (Fallback)", backupText);
-            await aiSpeak(backupText);
+            fallbackResponseHandler(userText);
         }
         
     } catch (error) {
         console.error("Gemini Error, switching to fallback:", error);
-        const backupText = fallbackResponse(userText);
-        addTranscriptBubble("Lakhu (Fallback)", backupText);
-        await aiSpeak(backupText);
+        fallbackResponseHandler(userText);
     }
+}
+
+// Separate fallback logic to avoid code duplication
+async function fallbackResponseHandler(userText) {
+    const input = userText.toLowerCase();
+    let backupText = "Sir, connection aaj bandh hone wala hai. Kya aap 200 rupees ka recharge karwayenge?";
+    
+    if (input.includes("hello") || input.includes("kon")) backupText = "Namaskar, main Lakhu bol rahi hoon DishTV se.";
+    else if (input.includes("ha") || input.includes("yes") || input.includes("thik hai")) backupText = "Bahut badhiya sir, 200 rupees ka recharge abhi kar lijiye connection chalu rakhne ke liye.";
+    else if (input.includes("nahi") || input.includes("no") || input.includes("bandh")) backupText = "Sir, agar aaj bandh ho gaya to hamesha ke liye bandh ho jayega. Sirf 200 rupees ki baat hai.";
+    else if (input.includes("paise") || input.includes("money")) backupText = "Sir, connection bachane ke liye kahi se adjust kar lijiye. Baad mein naya connection mehnga padega.";
+
+    addTranscriptBubble("Lakhu (Fallback)", backupText);
+    await aiSpeak(backupText);
 }
 
 // --- LOGIC: VOICE OUTPUT (ElevenLabs) ---
@@ -605,8 +634,8 @@ async function aiSpeak(text) {
 
     const safeText = text.replace(/(\d+)\s*rs/gi, "$1 rupees").replace(/₹(\d+)/g, "$1 rupees");
     
-    // Primary: Bella (Standard Female) - Reliable for Hindi
-    const VOICE_ID = 'EXAVITQu4vr4xnSDxMaL'; 
+    // Use Standard Voice (Rachel) to avoid 400 errors/limits
+    const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; 
 
     try {
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
@@ -622,7 +651,9 @@ async function aiSpeak(text) {
             })
         });
 
+        if (response.status === 401) throw new Error("API Key Invalid (401)");
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        
         const blob = await response.blob();
         if (blob.size === 0) throw new Error("Empty audio");
 
@@ -641,7 +672,7 @@ async function aiSpeak(text) {
         };
     } catch (error) {
         console.error(error);
-        addTranscriptBubble("System", "TTS Error.");
+        addTranscriptBubble("System", "TTS Error: " + error.message);
         stopWaveformAnimation();
         isAiSpeaking = false;
         // Fallback: Restart mic if TTS fails so user isn't stuck
