@@ -50,7 +50,7 @@ async function initApp() {
         }
     });
 
-    // Populate Keys from LocalStorage
+    // Populate Keys from LocalStorage (or hardcoded fallback if missing)
     document.getElementById('key-gemini').value = localStorage.getItem('np_gemini_key') || '';
     document.getElementById('key-eleven').value = localStorage.getItem('np_elevenlabs_key') || '';
 }
@@ -72,8 +72,15 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     recognition.onend = () => {
         updateMicUI('idle');
         // RESTART LOOP: Only if AI is NOT speaking and Call IS active
+        // Added slight delay to prevent rapid-fire restart loops if mic is failing
         if (!isAiSpeaking && activeCallData) {
-            try { recognition.start(); } catch(e) {}
+            setTimeout(() => {
+                try { 
+                    if(!isAiSpeaking) recognition.start(); 
+                } catch(e) {
+                    // Ignore "already started" errors
+                }
+            }, 300); 
         }
     };
 
@@ -83,6 +90,15 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             addBubble("Customer", transcript);
             processGeminiResponse(transcript);
         }
+    };
+    
+    // ERROR HANDLING to stop console spam
+    recognition.onerror = (event) => {
+        if(event.error === 'no-speech') {
+            // Ignore no-speech, it just means silence
+            return;
+        }
+        console.warn("Speech Recognition Error:", event.error);
     };
 }
 
@@ -217,20 +233,21 @@ async function processGeminiResponse(userText) {
     
     updateStatus("THINKING...", "text-purple-400");
     
-    // STRICT HINDI PROMPT
+    // STRICT HINDI PROMPT - ENFORCED
     const prompt = `
-        You are an Indian Call Center Agent named 'Lakhu'.
-        Context: ${activeCallData.script}
-        Customer Name: ${activeCallData.name}
-        User said: "${userText}"
+        You are an Indian Call Center Agent named 'Lakhu' speaking to ${activeCallData.name}.
         
-        INSTRUCTIONS:
-        1. Reply in HINDI (or Hinglish) ONLY.
-        2. Keep it short (1-2 sentences).
-        3. Be polite but persuasive.
-        4. If the user agrees to pay/recharge, say "Thank you" and end the conversation.
+        GOAL: ${activeCallData.script}
+        USER SAID: "${userText}"
         
-        Reply Text:
+        CRITICAL RULES:
+        1. SPEAK HINDI ONLY (or very natural Hinglish). DO NOT SPEAK ENGLISH.
+        2. If the user speaks English, reply in Hindi/Hinglish.
+        3. Keep it short (maximum 2 sentences).
+        4. Be polite but get to the point (payment/offer).
+        5. If user agrees, say "Dhanyavaad" and end.
+        
+        RESPONSE (In Hindi/Hinglish text):
     `;
 
     try {
@@ -239,6 +256,9 @@ async function processGeminiResponse(userText) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+        
+        if (!res.ok) throw new Error("Gemini API Error");
+        
         const data = await res.json();
         const aiText = data.candidates[0].content.parts[0].text;
         
@@ -246,9 +266,11 @@ async function processGeminiResponse(userText) {
         aiSpeak(aiText);
         
     } catch(e) {
-        console.error(e);
-        addBubble("System", "AI Error");
+        console.error("Gemini Error:", e);
+        addBubble("System", "AI Brain Error");
         updateStatus("ERROR", "text-red-500");
+        // Try to restart mic even if AI fails so call doesn't hang
+        if(recognition && activeCallData) recognition.start();
     }
 }
 
@@ -257,13 +279,18 @@ async function aiSpeak(text) {
     if(!key) { addBubble("System", "TTS Skipped (No Key)"); return; }
     
     isAiSpeaking = true;
-    if(recognition) recognition.stop(); // Stop listening while speaking
+    if(recognition) try { recognition.stop(); } catch(e){} // Stop listening while speaking
     
     updateStatus("SPEAKING...", "text-green-400");
     startWave();
     
+    // Cleanup text for better Hindi TTS pronunciation
+    const safeText = text.replace(/(\d+)\s*rs/gi, "$1 rupees")
+                         .replace(/₹(\d+)/g, "$1 rupees")
+                         .replace(/Rs\.?\s*(\d+)/gi, "$1 rupees");
+
     try {
-        // USE MULTILINGUAL V2 FOR HINDI
+        // USE MULTILINGUAL V2 FOR HINDI - Voice ID: TmPeb2hSxdVrThJLywkg
         const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/TmPeb2hSxdVrThJLywkg`, {
             method: 'POST',
             headers: {
@@ -271,11 +298,13 @@ async function aiSpeak(text) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                text: text,
+                text: safeText,
                 model_id: "eleven_multilingual_v2", // FIX: HINDI SUPPORT
                 voice_settings: { stability: 0.5, similarity_boost: 0.8 }
             })
         });
+        
+        if (!res.ok) throw new Error("ElevenLabs API Error");
         
         const blob = await res.blob();
         currentAudio = new Audio(URL.createObjectURL(blob));
@@ -293,19 +322,26 @@ async function aiSpeak(text) {
         };
         
     } catch(e) {
-        console.error(e);
+        console.error("TTS Error:", e);
         isAiSpeaking = false;
         stopWave();
+        // Fallback: Restart mic if TTS fails
+        if(recognition && activeCallData) {
+            try { recognition.start(); } catch(e2){}
+        }
     }
 }
 
 // --- 7. UTILS ---
 
 window.terminateCall = () => {
-    if(currentAudio) currentAudio.pause();
+    if(currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
     activeCallData = null;
     isAiSpeaking = false;
-    if(recognition) recognition.stop();
+    if(recognition) try { recognition.stop(); } catch(e){}
     document.getElementById('modal-active-call').classList.add('hidden');
     stopWave();
 };
