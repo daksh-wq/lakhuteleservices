@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralPulse | Live Operations</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        brand: { 50: '#f0f9ff', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+                        dark: { bg: '#0f172a', card: '#1e293b', border: '#334155' },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Glassmorphism & Utils */
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .scroll-hide::-webkit-scrollbar { display: none; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Navigation -->
+    <header class="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-6 z-20">
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-colors">
+                <i class="ph ph-arrow-left text-xl"></i>
+            </a>
+            <div class="h-6 w-px bg-white/10"></div>
+            <h1 class="font-bold text-lg text-white flex items-center gap-2">
+                <i class="ph-fill ph-phone-outgoing text-brand-500"></i> Calling Operations
+            </h1>
+        </div>
+        <div class="flex items-center gap-4 text-sm font-mono text-slate-400">
+            <div id="api-status" class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-slate-600"></span> Checking APIs...
+            </div>
+            <div class="h-6 w-px bg-white/10"></div>
+            <div id="user-display">Operator: ...</div>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- LEFT: Script Management (4 Slots) -->
+        <aside class="w-[400px] flex flex-col border-r border-white/5 bg-dark-bg/50 overflow-y-auto p-4 gap-4">
+            <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Script Configurations</h2>
+            
+            <!-- Script Slot 1 -->
+            <div class="glass-panel p-4 rounded-xl group hover:border-brand-500/30 transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-brand-400 font-bold text-xs bg-brand-900/30 px-2 py-1 rounded">SLOT 1</span>
+                    <input type="text" id="title-script-1" placeholder="Ex: Payment Reminder" class="bg-transparent border-none text-white text-sm font-bold focus:ring-0 w-32 text-right" value="Urgent Payment">
+                </div>
+                <textarea id="script-1" class="w-full h-24 bg-dark-bg/50 border border-dark-border rounded-lg p-2 text-xs text-slate-300 font-mono resize-none focus:border-brand-500 focus:outline-none" placeholder="Paste script logic here...">You are an agent for Airtel DTH. Remind user of ₹450 due. Be polite.</textarea>
+                <button onclick="saveScript(1)" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded border border-dark-border">Save Slot 1</button>
+            </div>
+
+            <!-- Script Slot 2 -->
+            <div class="glass-panel p-4 rounded-xl group hover:border-brand-500/30 transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-green-400 font-bold text-xs bg-green-900/30 px-2 py-1 rounded">SLOT 2</span>
+                    <input type="text" id="title-script-2" placeholder="Ex: Plan Upgrade" class="bg-transparent border-none text-white text-sm font-bold focus:ring-0 w-32 text-right" value="HD Upgrade">
+                </div>
+                <textarea id="script-2" class="w-full h-24 bg-dark-bg/50 border border-dark-border rounded-lg p-2 text-xs text-slate-300 font-mono resize-none focus:border-brand-500 focus:outline-none" placeholder="Paste script logic here...">Offer user 1 Month Free HD Pack if they recharge today. Sell aggressively.</textarea>
+                <button onclick="saveScript(2)" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded border border-dark-border">Save Slot 2</button>
+            </div>
+
+            <!-- Script Slot 3 -->
+            <div class="glass-panel p-4 rounded-xl group hover:border-brand-500/30 transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-yellow-400 font-bold text-xs bg-yellow-900/30 px-2 py-1 rounded">SLOT 3</span>
+                    <input type="text" id="title-script-3" placeholder="Script Name" class="bg-transparent border-none text-white text-sm font-bold focus:ring-0 w-32 text-right" value="Feedback">
+                </div>
+                <textarea id="script-3" class="w-full h-24 bg-dark-bg/50 border border-dark-border rounded-lg p-2 text-xs text-slate-300 font-mono resize-none focus:border-brand-500 focus:outline-none" placeholder="Paste script logic here...">Ask user why they haven't recharged. Collect reason codes (Price/Service).</textarea>
+                <button onclick="saveScript(3)" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded border border-dark-border">Save Slot 3</button>
+            </div>
+
+            <!-- Script Slot 4 -->
+            <div class="glass-panel p-4 rounded-xl group hover:border-brand-500/30 transition-colors">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-purple-400 font-bold text-xs bg-purple-900/30 px-2 py-1 rounded">SLOT 4</span>
+                    <input type="text" id="title-script-4" placeholder="Script Name" class="bg-transparent border-none text-white text-sm font-bold focus:ring-0 w-32 text-right" value="Custom">
+                </div>
+                <textarea id="script-4" class="w-full h-24 bg-dark-bg/50 border border-dark-border rounded-lg p-2 text-xs text-slate-300 font-mono resize-none focus:border-brand-500 focus:outline-none" placeholder="Paste script logic here..."></textarea>
+                <button onclick="saveScript(4)" class="mt-2 w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-white rounded border border-dark-border">Save Slot 4</button>
+            </div>
+        </aside>
+
+        <!-- RIGHT: Leads & Calling -->
+        <section class="flex-1 flex flex-col p-6 overflow-hidden">
+            
+            <!-- Toolbar -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Lead Queue</h2>
+                    <p class="text-sm text-slate-400">Select a lead and initiate call with a script.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('csv-upload').click()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm border border-dark-border flex items-center gap-2">
+                        <i class="ph ph-file-csv text-green-400 text-lg"></i> Import Excel/CSV
+                    </button>
+                    <input type="file" id="csv-upload" class="hidden" accept=".csv" onchange="handleFileUpload(event)">
+                    
+                    <button onclick="openAddLeadModal()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-brand-500/20 flex items-center gap-2">
+                        <i class="ph ph-plus-circle text-lg"></i> Add Manual
+                    </button>
+                </div>
+            </div>
+
+            <!-- Leads Table -->
+            <div class="glass-panel rounded-xl flex-1 overflow-hidden flex flex-col">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-900/80 sticky top-0 backdrop-blur-md z-10 text-xs uppercase text-slate-400">
+                            <tr>
+                                <th class="p-4">Name</th>
+                                <th class="p-4">Phone</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table-body" class="divide-y divide-white/5 text-sm">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                    <div id="empty-state" class="hidden flex flex-col items-center justify-center h-64 text-slate-500">
+                        <i class="ph ph-users-three text-4xl mb-2"></i>
+                        <p>No leads in queue. Add numbers to start.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: Script Selector (Before Call) -->
+    <div id="modal-select-script" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-md rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Select Script for <span id="target-lead-name" class="text-brand-400"></span></h3>
+            <div class="grid grid-cols-1 gap-3 mb-4">
+                <button onclick="launchCall(1)" class="p-3 bg-slate-800 border border-dark-border rounded-lg hover:border-brand-500 hover:bg-slate-700 text-left transition-all">
+                    <div class="font-bold text-white text-sm" id="btn-title-1">Slot 1</div>
+                    <div class="text-xs text-slate-500 truncate" id="btn-desc-1">...</div>
+                </button>
+                <button onclick="launchCall(2)" class="p-3 bg-slate-800 border border-dark-border rounded-lg hover:border-brand-500 hover:bg-slate-700 text-left transition-all">
+                    <div class="font-bold text-white text-sm" id="btn-title-2">Slot 2</div>
+                    <div class="text-xs text-slate-500 truncate" id="btn-desc-2">...</div>
+                </button>
+                <button onclick="launchCall(3)" class="p-3 bg-slate-800 border border-dark-border rounded-lg hover:border-brand-500 hover:bg-slate-700 text-left transition-all">
+                    <div class="font-bold text-white text-sm" id="btn-title-3">Slot 3</div>
+                    <div class="text-xs text-slate-500 truncate" id="btn-desc-3">...</div>
+                </button>
+                <button onclick="launchCall(4)" class="p-3 bg-slate-800 border border-dark-border rounded-lg hover:border-brand-500 hover:bg-slate-700 text-left transition-all">
+                    <div class="font-bold text-white text-sm" id="btn-title-4">Slot 4</div>
+                    <div class="text-xs text-slate-500 truncate" id="btn-desc-4">...</div>
+                </button>
+            </div>
+            <button onclick="document.getElementById('modal-select-script').classList.add('hidden')" class="w-full py-2 text-slate-400 hover:text-white">Cancel</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Active Call Interface -->
+    <div id="modal-active-call" class="fixed inset-0 z-50 bg-black/95 hidden flex flex-col">
+        <!-- Call Header -->
+        <div class="h-20 border-b border-white/10 flex items-center justify-between px-8">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                    <h2 class="text-2xl font-bold text-white" id="live-lead-name">Unknown</h2>
+                </div>
+                <p class="text-slate-400 font-mono text-sm ml-6" id="live-lead-phone">...</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <div class="text-xs text-slate-500 uppercase font-bold">Active Script</div>
+                    <div class="text-brand-400 font-bold" id="live-script-name">...</div>
+                </div>
+                <button onclick="terminateCall()" class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-red-500/20">End Call</button>
+            </div>
+        </div>
+
+        <!-- Main Call Area -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Visualizer -->
+            <div class="flex-1 flex flex-col items-center justify-center relative">
+                <div class="absolute inset-0 bg-gradient-to-b from-brand-900/10 to-transparent pointer-events-none"></div>
+                
+                <div id="ai-status" class="text-2xl font-mono text-brand-500 mb-8 font-bold">CONNECTING...</div>
+                
+                <div class="flex items-center gap-2 h-32" id="waveform">
+                    <!-- Bars injected by JS -->
+                </div>
+            </div>
+
+            <!-- Transcript & Controls -->
+            <div class="w-[450px] border-l border-white/10 bg-slate-900/50 flex flex-col">
+                <div class="p-4 border-b border-white/10 text-xs font-bold text-slate-500 uppercase">Live Transcript</div>
+                <div id="transcript" class="flex-1 overflow-y-auto p-4 space-y-4 font-mono text-sm">
+                    <!-- Chat bubbles -->
+                </div>
+                <div class="p-4 border-t border-white/10 bg-slate-900">
+                    <form onsubmit="handleUserSpeak(event)" class="flex gap-2">
+                        <input id="user-input" type="text" placeholder="Simulate customer reply..." class="flex-1 bg-slate-800 border border-dark-border rounded px-3 py-2 text-white focus:outline-none focus:border-brand-500">
+                        <button type="submit" class="bg-brand-600 text-white px-4 rounded font-medium">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Lead -->
+    <div id="modal-add-lead" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center">
+        <div class="glass-panel w-full max-w-sm rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Add Single Number</h3>
+            <form onsubmit="saveManualLead(event)" class="space-y-3">
+                <input type="text" name="name" placeholder="Name" required class="w-full bg-slate-900 border border-dark-border rounded px-3 py-2 text-white">
+                <input type="text" name="phone" placeholder="Phone (+91...)" required class="w-full bg-slate-900 border border-dark-border rounded px-3 py-2 text-white">
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-2 rounded font-bold">Add to Queue</button>
+            </form>
+            <button onclick="document.getElementById('modal-add-lead').classList.add('hidden')" class="mt-2 w-full text-sm text-slate-500 hover:text-white">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Core Logic -->
+    <script type="module" src="calling.js"></script>
+</body>
+</html>
