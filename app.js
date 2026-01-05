@@ -597,14 +597,14 @@ async function processAIResponse(userText) {
 
         INSTRUCTIONS:
         1. UNDERSTAND the customer's intent (Agreement, Refusal, Excuse, Question).
-        2. FORMULATE a natural, human-like response in PURE HINDI (Devanagari script style or clear transliteration, avoiding English words unless technical like 'Recharge', 'Connection').
-        3. DO NOT repeat the same lines robotically. Adapt your phrasing.
-        4. IF they agree, close the deal: "Boht badhiya Sir, 200 rupees ka recharge abhi kar lijiye."
+        2. FORMULATE a natural, human-like response in PURE HINDI (Devanagari). 
+        3. DO NOT speak English words unless it is a specific technical term (like 'Recharge').
+        4. IF they agree, close the deal: "बहुत बढ़िया सर, २०० रुपये का रिचार्ज अभी कर लीजिये."
         5. IF they refuse/make excuses, use the "KEY POINTS" from the context to persuade them naturally.
         6. ALWAYS spell currency as "rupees". Never use symbols.
         7. Keep response short (1-2 sentences).
 
-        YOUR NATURAL RESPONSE (in Pure Hindi/Clear Hinglish):
+        YOUR NATURAL RESPONSE (in Pure Hindi):
     `;
 
     try {
@@ -678,7 +678,16 @@ async function aiSpeak(text) {
             })
         });
 
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail?.message || `API Error: ${response.status}`);
+        }
+
         const blob = await response.blob();
+        if (blob.size === 0) {
+            throw new Error("Received empty audio blob from ElevenLabs");
+        }
+
         currentAudio = new Audio(URL.createObjectURL(blob));
         await currentAudio.play();
         
