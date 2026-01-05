@@ -264,7 +264,7 @@ async function aiSpeak(text) {
     
     try {
         // USE MULTILINGUAL V2 FOR HINDI
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL`, {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/TmPeb2hSxdVrThJLywkg`, {
             method: 'POST',
             headers: {
                 'xi-api-key': key,
